@@ -2,9 +2,12 @@ package main
 
 /* TODO
  * - [X] Normalize coordinate space. We're a little in cell space and a little in pixel space
- * - [ ] Implement movement queue, so user can click 2 or 3 times before movement is blocked
+ * - [-] Implement movement queue, so user can click 2 or 3 times before movement is blocked [^1]
  * - [ ] Implement enemies as Entities
  * - [ ] Implement a spire animation
+ *
+ * [^1]: The queue prooved extremly finicky. Queueing and dequeing while maintaining data integrity turns out to be a bit
+ *       of a nightmare, which is why i ditched it for a "redirect approach" by removing the block when moving.
  */
 
 import (
@@ -93,7 +96,6 @@ type Player struct {
 	targetPosition  *rl.Vector2
 	moving          bool
 	speed           float32 // Using rl.GetFrameTime will result in a pixel per second paradigm
-	movementQueue   [3]*rl.Vector2
 }
 
 func (p *Player) hasArrived(cellWidth int) bool {
@@ -131,7 +133,6 @@ func (p *Player) stopMoving() {
 }
 
 func (p *Player) updatePosition(time float32) {
-	utils.LogDebug("Player queueu: %+v", p.movementQueue)
 	p.currentPosition.X = gridsystem.ApproachPoint(p.currentPosition.X, p.targetPosition.X, p.speed*time)
 	p.currentPosition.Y = gridsystem.ApproachPoint(p.currentPosition.Y, p.targetPosition.Y, p.speed*time)
 }
@@ -153,7 +154,6 @@ func (w *World) Update() Screen {
 		}
 
 		w.player.updatePosition(rl.GetFrameTime())
-		return w
 	}
 
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
