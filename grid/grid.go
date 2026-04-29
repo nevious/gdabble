@@ -1,4 +1,4 @@
-package gridsystem
+package grid
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 import "math"
