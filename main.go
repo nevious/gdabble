@@ -83,8 +83,8 @@ func createCreditScreen(font *rl.Font, color, highlight rl.Color) ui.Screen {
 }
 
 // Create a gameScren that contains the world and displays it
-func createGameScreen(gameWorld *world.World, font *rl.Font, color, highlight rl.Color) ui.Screen {
-	return ui.NewGameScreen(gameWorld, gameWorld.GetCellWidth(), font, color, highlight)
+func createGameScreen(gameWorld *world.World, font *rl.Font, color, highlight rl.Color, camera *rl.Camera2D) ui.Screen {
+	return ui.NewGameScreen(gameWorld, gameWorld.GetCellWidth(), font, color, highlight, camera)
 }
 
 // Create a simply quick screen
@@ -103,14 +103,25 @@ func createSettings(font *rl.Font, color, hightlight rl.Color) ui.Screen {
 	return ui.NewSettingsScreen(values, font, color, hightlight)
 }
 
+// Create a camera to be used
+func createCamera(player character.Entity) *rl.Camera2D {
+	return &rl.Camera2D{
+		Target:   *player.GetCurrentPosition(),
+		Offset:   *player.GetCurrentPosition(),
+		Rotation: 0,
+		Zoom:     1,
+	}
+}
+
 func main() {
 	initRaylib()
 	defer rl.CloseWindow()
 
 	// Build things
 	player := createPlayer(speed)
+	camera := createCamera(player)
 	world := createWorld(cellWidth, player)
-	gameScreen := createGameScreen(world, &gameFont, mainBackground, accentBlue)
+	gameScreen := createGameScreen(world, &gameFont, mainForeground, accentBlue, camera)
 	creditScreen := createCreditScreen(&gameFont, mainForeground, accentBlue)
 	settingsScreen := createSettings(&gameFont, mainForeground, accentBlue)
 	quitScreen := createQuitScreen()

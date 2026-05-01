@@ -14,6 +14,8 @@ type gameScreen struct {
 	font      *rl.Font
 	fontColor rl.Color
 	parent    Screen
+	camera    *rl.Camera2D
+	highlight rl.Color
 }
 
 func (s *gameScreen) SetParent(parent Screen) Screen {
@@ -26,6 +28,7 @@ func (s *gameScreen) SetParent(parent Screen) Screen {
 // it manipulates state, not the ui
 func (s *gameScreen) Update() Screen {
 	s.world.Update() // Update world state, do not draw anything
+	s.camera.Target = (*s.world.GetPlayer().GetCurrentPosition())
 
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return s.parent
@@ -57,6 +60,7 @@ func (s *gameScreen) Draw() {
 		rl.GetScreenHeight(),
 		rl.GetFPS(),
 	)
+
 	rl.DrawText(
 		detail,
 		10,
@@ -79,6 +83,7 @@ func (s *gameScreen) Draw() {
 		rl.Orange,
 	)
 
+	rl.BeginMode2D(*s.camera)
 	vec := *grid.GetCoordinateSystem(s.cellWidth)
 	t := fmt.Sprintf("%0.f x %0.f", vec.X, vec.Y)
 	rl.DrawText(
@@ -101,15 +106,17 @@ func (s *gameScreen) Draw() {
 		cx, cy := int32(pPos.X), int32(pPos.Y)
 		rl.DrawCircle(cx, cy, 15, rl.White)
 	}
-
+	rl.EndMode2D()
 }
 
-func NewGameScreen(world *world.World, cellWidth int, font *rl.Font, color, highlight rl.Color) Screen {
+func NewGameScreen(world *world.World, cellWidth int, font *rl.Font, color, highlight rl.Color, cam *rl.Camera2D) Screen {
 	// TODO: highlight ommited!
 	return &gameScreen{
 		world:     world,
 		cellWidth: cellWidth,
 		font:      font,
 		fontColor: color,
+		camera:    cam,
+		highlight: highlight,
 	}
 }
