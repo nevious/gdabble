@@ -6,8 +6,9 @@ import (
 )
 
 type World struct {
-	cellWidth int
-	player    character.Entity
+	tileSize float32
+	player   character.Entity
+	gameMap  GameMapInterface
 }
 
 func (w *World) Update() {
@@ -25,13 +26,28 @@ func (w *World) GetPlayer() character.Entity {
 	return w.player
 }
 
-func (w *World) GetCellWidth() int {
-	return w.cellWidth
+func (w *World) GetTileSize() float32 {
+	return w.tileSize
 }
 
-func NewWorld(cellWidth int, player character.Entity) *World {
+func (w *World) GetMap() GameMapInterface {
+	return w.gameMap
+}
+
+func (w *World) LoadMap()   {}
+func (w *World) UnloadMap() {}
+
+func NewWorld(tileSize float32, player character.Entity) *World {
+	m := GameMap{
+		id:             1,
+		dimensions:     rl.Vector2{X: 30, Y: 15},
+		transitions:    nil,
+		terrainMapFile: "",
+	}
+
 	return &World{
-		player:    player,
-		cellWidth: cellWidth,
+		player:   player,
+		tileSize: tileSize,
+		gameMap:  &m,
 	}
 }

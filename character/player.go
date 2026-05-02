@@ -10,6 +10,8 @@ type Player struct {
 	targetPosition  *rl.Vector2
 	moving          bool
 	speed           float32 // Using rl.GetFrameTime will result in a pixel per second paradigm
+	spriteAsset     string
+	texture         *rl.Texture2D
 }
 
 func (p *Player) HasArrived() bool {
@@ -51,10 +53,38 @@ func (p *Player) UpdatePosition(time float32) {
 	p.currentPosition.Y = grid.ApproachPoint(p.currentPosition.Y, p.targetPosition.Y, p.speed*time)
 }
 
+func (p *Player) LoadSprite() Entity {
+	texture := rl.LoadTexture(p.spriteAsset)
+	p.texture = &texture
+	return p
+}
+
+func (p *Player) UnloadSprite() {
+	if p.texture != nil {
+		rl.UnloadTexture(*p.texture)
+	}
+}
+
+func (p *Player) Draw() {
+	if p.texture == nil {
+		p.LoadSprite()
+	}
+
+	playerPosition := p.GetCurrentPosition()
+
+	rl.DrawTexture(
+		*p.texture,
+		int32(playerPosition.X)-p.texture.Width/2,
+		int32(playerPosition.Y)-(p.texture.Height-6),
+		rl.White,
+	)
+}
+
 func NewPlayer(spawn *rl.Vector2, speed float32) Entity {
 	return &Player{
 		currentPosition: spawn,
 		speed:           speed,
 		moving:          false,
+		spriteAsset:     "assets/character/playerPlaceHolderSprite.png",
 	}
 }

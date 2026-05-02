@@ -38,23 +38,11 @@ var (
 	gameFont rl.Font
 
 	/* Map */
-	cellWidth int = 30
+	cellWidth float32 = 30
 
 	/* Default speed */
 	speed float32 = 175
 )
-
-/*
- * Entrypoint with setup
- */
-func initRaylib() {
-	rl.InitWindow(width, height, "A dabblin' game!")
-	rl.SetWindowState(rl.FlagWindowResizable)
-	rl.SetTraceLogLevel(rl.LogAll)
-	rl.SetTargetFPS(120)
-	gameFont = rl.GetFontDefault()
-	utils.LogDebug("Font: %+v", gameFont)
-}
 
 // Create and spawn a player in the middle of the initial grid
 func createPlayer(speed float32) character.Entity {
@@ -73,7 +61,7 @@ func createPlayer(speed float32) character.Entity {
 }
 
 // Create a world with a player
-func createWorld(cellWidth int, player character.Entity) *world.World {
+func createWorld(cellWidth float32, player character.Entity) *world.World {
 	return world.NewWorld(cellWidth, player)
 }
 
@@ -84,7 +72,7 @@ func createCreditScreen(font *rl.Font, color, highlight rl.Color) ui.Screen {
 
 // Create a gameScren that contains the world and displays it
 func createGameScreen(gameWorld *world.World, font *rl.Font, color, highlight rl.Color, camera *rl.Camera2D) ui.Screen {
-	return ui.NewGameScreen(gameWorld, gameWorld.GetCellWidth(), font, color, highlight, camera)
+	return ui.NewGameScreen(gameWorld, font, color, highlight, camera)
 }
 
 // Create a simply quick screen
@@ -109,8 +97,17 @@ func createCamera(player character.Entity) *rl.Camera2D {
 		Target:   *player.GetCurrentPosition(),
 		Offset:   *player.GetCurrentPosition(),
 		Rotation: 0,
-		Zoom:     1,
+		Zoom:     1, // defaults to 0, infinite zoom
 	}
+}
+
+func initRaylib() {
+	rl.InitWindow(width, height, "A dabblin' game!")
+	rl.SetWindowState(rl.FlagWindowResizable)
+	rl.SetTraceLogLevel(rl.LogAll)
+	rl.SetTargetFPS(120)
+	gameFont = rl.GetFontDefault()
+	utils.LogDebug("Font: %+v", gameFont)
 }
 
 func main() {
@@ -118,7 +115,8 @@ func main() {
 	defer rl.CloseWindow()
 
 	// Build things
-	player := createPlayer(speed)
+	player := createPlayer(speed).LoadSprite()
+	defer player.UnloadSprite()
 	camera := createCamera(player)
 	world := createWorld(cellWidth, player)
 	gameScreen := createGameScreen(world, &gameFont, mainForeground, accentBlue, camera)

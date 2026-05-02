@@ -3,16 +3,7 @@ package grid
 import rl "github.com/gen2brain/raylib-go/raylib"
 import "math"
 
-func GetCoordinateSystem(cellWidth int) *rl.Vector2 {
-	width := rl.GetScreenWidth()
-	height := rl.GetScreenHeight()
-	return &rl.Vector2{
-		X: float32(width / cellWidth),
-		Y: float32(height / cellWidth),
-	}
-}
-
-func GetCellFromPixelPosition(position *rl.Vector2, cellWidth int) *rl.Vector2 {
+func GetCellFromPixelPosition(position *rl.Vector2, cellWidth float32) *rl.Vector2 {
 	x := math.Floor(float64(position.X / float32(cellWidth)))
 	y := math.Floor(float64(position.Y / float32(cellWidth)))
 
@@ -21,7 +12,7 @@ func GetCellFromPixelPosition(position *rl.Vector2, cellWidth int) *rl.Vector2 {
 	}
 }
 
-func GetCenterCellCoordinates(pos *rl.Vector2, cellWidth int) *rl.Vector2 {
+func GetCenterCellCoordinates(pos *rl.Vector2, cellWidth float32) *rl.Vector2 {
 	x := pos.X*float32(cellWidth) + float32(cellWidth/2)
 	y := pos.Y*float32(cellWidth) + float32(cellWidth/2)
 
