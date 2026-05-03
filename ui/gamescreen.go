@@ -79,32 +79,14 @@ func (s *gameScreen) drawOverlayInterface() {
 
 func (s *gameScreen) drawGridLines() {
 	tSize := s.world.GetTileSize()
-	worldMap := s.world.GetMap().GetSize()
-
 	rl.BeginMode2D(*s.camera)
-	// The grid is sort of an overlay, we don't handle it in the world
 	gridColor, gridHighlightColor := s.highlight, s.highlight
 	gridColor.A = 100
 	gridHighlightColor.A = 255
-
-	for x := 0; x <= int(worldMap.X); x++ {
-		fromX, toX := int32(x*int(tSize)-1), int32(x*int(tSize))
-		rl.DrawText(fmt.Sprintf("%d", x), fromX, 0, 10, rl.White)
-		rl.DrawLine(fromX, 0, toX, int32(worldMap.Y*tSize), gridColor)
-	}
-
-	for y := 0; y <= int(worldMap.Y); y++ {
-		fromY, toY := int32(y*int(tSize)-1), int32(y*int(tSize))
-		rl.DrawText(fmt.Sprintf("%d", y), 0, fromY, 10, rl.White)
-		rl.DrawLine(0, fromY, int32(worldMap.X*tSize), toY, gridColor)
-	}
-
-	// Check if mouse is inside the map maybe
 	mousePosition := rl.GetScreenToWorld2D(rl.GetMousePosition(), *s.camera)
 	mouseCell := *grid.GetCellFromPixelPosition(&mousePosition, s.world.GetTileSize())
 	rect := rl.NewRectangle((mouseCell.X*tSize)-1, (mouseCell.Y*tSize)-1, tSize, tSize)
 	rl.DrawRectangleLinesEx(rect, 1, gridHighlightColor)
-
 	rl.EndMode2D()
 }
 
@@ -119,9 +101,10 @@ func (s *gameScreen) drawTileMap() {
 
 	for x := float32(0); x < worldMap.X; x++ {
 		for y := float32(0); y < worldMap.Y; y++ {
-			pos := rl.NewVector2(x*tSize, y*tSize)
-			//screenPos := rl.GetWorldToScreen2D(pos, *s.camera)
-			rl.DrawTexture(texture, int32(pos.X), int32(pos.Y), rl.White)
+			destPosition := rl.NewVector2(x*tSize, y*tSize)
+			destRect := rl.NewRectangle(destPosition.X, destPosition.Y, tSize, tSize)
+			textureRect := s.world.GetMap().GetTileAt(int(x), int(y))
+			rl.DrawTexturePro(texture, *textureRect, destRect, rl.NewVector2(0, 0), 0, rl.White)
 		}
 	}
 

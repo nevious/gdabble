@@ -6,6 +6,7 @@ package main
  * - [ ] Implement enemies as Entities
  * - [X] Decouple World and Menu Screens
  * - [ ] Implement a sprite animation
+ * - [ ] Player spwn is in limbo if the map is not big enough
  *
  * [^1]: The queue prooved extremly finicky. Queueing and dequeing while maintaining data integrity turns out to be a bit
  *       of a nightmare, which is why i ditched it for a "redirect approach" by removing the block when moving.

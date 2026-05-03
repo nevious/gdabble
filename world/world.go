@@ -40,7 +40,7 @@ func (w *World) LoadMap(gameMap GameMapInterface) {
 }
 
 func NewWorld(tileSize float32, player character.Entity) *World {
-	gameMap := NewGameMap(1, rl.NewVector2(40, 20), "./assets/terrain/basicSand.png")
+	gameMap := NewGameMap(1, rl.NewVector2(40, 20), "./assets/TinySwordsFreePack/Terrain/Tileset/Tilemap_color1.png", 64)
 
 	newWorld := &World{
 		player:   player,
