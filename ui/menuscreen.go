@@ -6,7 +6,6 @@ import (
 )
 
 // Navigation Struct, mapping a label to a Screen Type
-// -------------------------------------------------
 type MenuItem struct {
 	Label  string
 	Screen Screen
@@ -15,12 +14,11 @@ type MenuItem struct {
 // TODO: Move to dedicated file in case we want to quit from multiple places
 // and continue to have things seperated by purpose.
 // Quit Screen hack
-// -------------------------------------------------
 type QuitScreen struct{}
 
 func (q *QuitScreen) SetParent(parent Screen) Screen { return q }
 func (q *QuitScreen) Draw()                          {}
-func (q *QuitScreen) Update() Screen                 { return q }
+func (q *QuitScreen) HandleInput() Screen            { return q }
 
 // Menu Structure
 // -------------------------------------------------
@@ -35,7 +33,7 @@ type menu struct {
 // menu is the root screen element, it does not have a parent
 func (m *menu) SetParent(parent Screen) Screen { return m }
 
-func (m *menu) Update() Screen {
+func (m *menu) HandleInput() Screen {
 	if rl.IsKeyPressed(rl.KeyEnter) {
 		items := m.menuItems
 		return (*items)[m.index].Screen

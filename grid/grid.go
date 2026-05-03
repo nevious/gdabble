@@ -12,6 +12,7 @@ func GetCellFromPixelPosition(position *rl.Vector2, cellWidth float32) *rl.Vecto
 	}
 }
 
+// Return World Coordinates
 func GetCenterCellCoordinates(pos *rl.Vector2, cellWidth float32) *rl.Vector2 {
 	x := pos.X*float32(cellWidth) + float32(cellWidth/2)
 	y := pos.Y*float32(cellWidth) + float32(cellWidth/2)

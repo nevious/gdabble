@@ -38,7 +38,7 @@ var (
 	gameFont rl.Font
 
 	/* Map */
-	cellWidth float32 = 30
+	cellWidth float32 = 32
 
 	/* Default speed */
 	speed float32 = 175
@@ -91,17 +91,16 @@ func createSettings(font *rl.Font, color, hightlight rl.Color) ui.Screen {
 	return ui.NewSettingsScreen(values, font, color, hightlight)
 }
 
-// Create a camera to be used
+// Create a camera and point it at the player
 func createCamera(player character.Entity) *rl.Camera2D {
 	return &rl.Camera2D{
-		Target:   *player.GetCurrentPosition(),
-		Offset:   *player.GetCurrentPosition(),
-		Rotation: 0,
-		Zoom:     1, // defaults to 0, infinite zoom
+		Target: *player.GetCurrentPosition(),
+		Zoom:   1, // defaults to 0, infinite zoom
 	}
 }
 
 func initRaylib() {
+	//rl.SetConfigFlags(rl.FlagMsaa4xHint)
 	rl.InitWindow(width, height, "A dabblin' game!")
 	rl.SetWindowState(rl.FlagWindowResizable)
 	rl.SetTraceLogLevel(rl.LogAll)
@@ -114,9 +113,10 @@ func main() {
 	initRaylib()
 	defer rl.CloseWindow()
 
-	// Build things
-	player := createPlayer(speed).LoadSprite()
-	defer player.UnloadSprite()
+	// Build things in a constructor way
+	// Might not be needed everywhere, but should give us options
+	player := createPlayer(speed)
+	defer player.DestroyCharacter()
 	camera := createCamera(player)
 	world := createWorld(cellWidth, player)
 	gameScreen := createGameScreen(world, &gameFont, mainForeground, accentBlue, camera)
@@ -141,7 +141,7 @@ func main() {
 	var currentScreen ui.Screen = menuScreen
 
 	for !rl.WindowShouldClose() {
-		currentScreen = currentScreen.Update()
+		currentScreen = currentScreen.HandleInput()
 
 		if _, ok := currentScreen.(*ui.QuitScreen); ok {
 			break

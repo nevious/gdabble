@@ -17,22 +17,25 @@ type gameScreen struct {
 	highlight rl.Color
 }
 
-func (s *gameScreen) SetParent(parent Screen) Screen {
-	s.parent = parent
-	return s
+// Update camera Target and Offset
+func (s *gameScreen) handleCameraInput() {
+	// Player position
+	p := s.world.GetPlayer()
+	s.camera.Target.X = float32(int(p.GetCurrentPosition().X))
+	s.camera.Target.Y = float32(int(p.GetCurrentPosition().Y))
+	// Casting to int before, so the value is clamped to a near number
+	s.camera.Offset.X = float32(int(rl.GetScreenWidth()) / 2)
+	s.camera.Offset.Y = float32(int(rl.GetScreenHeight()) / 2)
+
+	// Camera Zoom
+	if wheelMove := rl.GetMouseWheelMove(); wheelMove > 0 {
+		s.camera.Zoom++
+	} else if wheelMove < 0 && s.camera.Zoom >= 2 {
+		s.camera.Zoom--
+	}
 }
 
-// Function is called once per frame at the beginning
-// of the game loop before raylib is ready to be drawed() on
-// it manipulates state, not the ui
-func (s *gameScreen) Update() Screen {
-	s.world.Update() // Update world state, do not draw anything
-	s.camera.Target = (*s.world.GetPlayer().GetCurrentPosition())
-
-	if rl.IsKeyPressed(rl.KeyBackspace) {
-		return s.parent
-	}
-
+func (s *gameScreen) handlePlayerInput() {
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 		p := s.world.GetPlayer()
 
@@ -40,8 +43,11 @@ func (s *gameScreen) Update() Screen {
 		clickedCell := grid.GetCellFromPixelPosition(&vec, s.world.GetTileSize())
 		worldMapSize := s.world.GetMap().GetSize()
 
-		if clickedCell.X >= 0 && clickedCell.X <= worldMapSize.X &&
-			clickedCell.Y >= 0 && clickedCell.Y <= worldMapSize.Y {
+		// TODO
+		// Whether a cell is inside the world grid is something
+		// that should behandled in the grid package
+		if clickedCell.X >= 0 && clickedCell.X < worldMapSize.X &&
+			clickedCell.Y >= 0 && clickedCell.Y < worldMapSize.Y {
 			p.SetTargetPosition(
 				grid.GetCenterCellCoordinates(clickedCell, s.world.GetTileSize()),
 			)
@@ -52,13 +58,11 @@ func (s *gameScreen) Update() Screen {
 			*p.GetTargetPosition(),
 		)
 	}
-	return s
 }
 
-func (s *gameScreen) DrawInterface() {
+func (s *gameScreen) drawOverlayInterface() {
 	detail := fmt.Sprintf("%dx%d@%d FPS", rl.GetScreenWidth(), rl.GetScreenHeight(), rl.GetFPS())
 	worldMap := s.world.GetMap().GetSize()
-	tSize := s.world.GetTileSize()
 
 	rl.DrawText(detail, 10, int32(rl.GetScreenHeight())-30, s.font.BaseSize+10, s.fontColor)
 	rl.DrawCircle(0, 0, 15, rl.Red)
@@ -66,50 +70,127 @@ func (s *gameScreen) DrawInterface() {
 	rl.DrawCircle(0, int32(rl.GetScreenHeight()), 15, rl.Purple)
 	rl.DrawCircle(int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()), 15, rl.Orange)
 
-	vec := s.world.GetMap().GetSize()
-	t := fmt.Sprintf("%0.f x %0.f", vec.X, vec.Y)
+	t := fmt.Sprintf("%0.f x %0.f", worldMap.X, worldMap.Y)
 	rl.DrawText(
 		t, utils.GetCenterForText(t, 20, *s.font), 25, 20, s.fontColor,
 	)
+
+}
+
+func (s *gameScreen) drawGridLines() {
+	tSize := s.world.GetTileSize()
+	worldMap := s.world.GetMap().GetSize()
+
 	rl.BeginMode2D(*s.camera)
+	// The grid is sort of an overlay, we don't handle it in the world
+	gridColor, gridHighlightColor := s.highlight, s.highlight
+	gridColor.A = 100
+	gridHighlightColor.A = 255
+
 	for x := 0; x <= int(worldMap.X); x++ {
 		fromX, toX := int32(x*int(tSize)-1), int32(x*int(tSize))
 		rl.DrawText(fmt.Sprintf("%d", x), fromX, 0, 10, rl.White)
-		rl.DrawLine(fromX, 0, toX, int32(worldMap.Y*tSize), rl.Pink)
+		rl.DrawLine(fromX, 0, toX, int32(worldMap.Y*tSize), gridColor)
 	}
 
 	for y := 0; y <= int(worldMap.Y); y++ {
 		fromY, toY := int32(y*int(tSize)-1), int32(y*int(tSize))
 		rl.DrawText(fmt.Sprintf("%d", y), 0, fromY, 10, rl.White)
-		rl.DrawLine(0, fromY, int32(worldMap.X*tSize), toY, rl.Pink)
+		rl.DrawLine(0, fromY, int32(worldMap.X*tSize), toY, gridColor)
 	}
+
+	// Check if mouse is inside the map maybe
+	mousePosition := rl.GetScreenToWorld2D(rl.GetMousePosition(), *s.camera)
+	mouseCell := *grid.GetCellFromPixelPosition(&mousePosition, s.world.GetTileSize())
+	rect := rl.NewRectangle((mouseCell.X*tSize)-1, (mouseCell.Y*tSize)-1, tSize, tSize)
+	rl.DrawRectangleLinesEx(rect, 1, gridHighlightColor)
+
 	rl.EndMode2D()
 }
 
-// Function is called once the Drawing canvas has started
-// it craws the current state
-func (s *gameScreen) Draw() {
-	s.DrawInterface()
+func (s *gameScreen) drawTileMap() {
+	// Dummy function, draw a single tile across everything
+	// not what we're gonna have
+	worldMap := s.world.GetMap().GetSize()
+	tSize := s.world.GetTileSize()
+	texture := *s.world.GetMap().GetTexture()
 
+	rl.BeginMode2D(*s.camera)
+
+	for x := float32(0); x < worldMap.X; x++ {
+		for y := float32(0); y < worldMap.Y; y++ {
+			pos := rl.NewVector2(x*tSize, y*tSize)
+			//screenPos := rl.GetWorldToScreen2D(pos, *s.camera)
+			rl.DrawTexture(texture, int32(pos.X), int32(pos.Y), rl.White)
+		}
+	}
+
+	rl.EndMode2D()
+}
+
+func (s *gameScreen) drawPlayer() {
 	rl.BeginMode2D(*s.camera)
 	p := s.world.GetPlayer()
 	if p.GetCurrentPosition() != nil {
 		pPos := p.GetCurrentPosition()
 		cx, cy := int32(pPos.X), int32(pPos.Y)
-		rl.DrawCircle(cx, cy, 13, rl.DarkGray)
-		rl.DrawText(fmt.Sprintf("%d | %d - Dunno", cx, cy), cx, cy+20, 10, rl.SkyBlue)
+		rl.DrawCircle(cx, cy, 13, rl.DarkGray) // Acting as a shaodw for now
+
+		// some debugging information about player position
+		rl.DrawText(fmt.Sprintf("%d | %d - Raw", cx, cy), cx, cy+20, 10, rl.SkyBlue)
 		worldPos := rl.GetScreenToWorld2D(*pPos, *s.camera)
 		rl.DrawText(fmt.Sprintf("%0f | %0f - World", worldPos.X, worldPos.Y), cx, cy+30, 10, rl.SkyBlue)
 		screenPos := rl.GetWorldToScreen2D(worldPos, *s.camera)
 		rl.DrawText(fmt.Sprintf("%0f | %0f - Back2Screen", screenPos.X, screenPos.Y), cx, cy+40, 10, rl.SkyBlue)
-		p.Draw()
+
+		// p.Draw()
+		playerSprite := p.GetCharacterSprite()
+		rl.DrawTexture(
+			*playerSprite,
+			int32(pPos.X)-playerSprite.Width/2,
+			int32(pPos.Y)-playerSprite.Height,
+			rl.White,
+		)
 	}
 	rl.EndMode2D()
 }
 
-func NewGameScreen(world *world.World, font *rl.Font, color, highlight rl.Color, cam *rl.Camera2D) Screen {
+/*
+ * Interface Functions
+ */
+
+func (s *gameScreen) SetParent(parent Screen) Screen {
+	s.parent = parent
+	return s
+}
+
+// Function is called once per frame before drawing
+func (s *gameScreen) HandleInput() Screen {
+	if rl.IsKeyPressed(rl.KeyBackspace) {
+		return s.parent
+	}
+
+	s.world.Update() // Update world state and game logic
+	s.handlePlayerInput()
+	s.handleCameraInput()
+
+	return s
+}
+
+// Function is called once the Drawing canvas has started
+// it draws the current state
+func (s *gameScreen) Draw() {
+	// Dispatch drawing, each function should call their own BeginMode2D
+	// if needed and provide their own state data like dimensions
+	s.drawTileMap()
+	s.drawGridLines()
+	s.drawPlayer()
+	s.drawOverlayInterface()
+}
+
+func NewGameScreen(gameWorld *world.World, font *rl.Font, color, highlight rl.Color, cam *rl.Camera2D) Screen {
 	return &gameScreen{
-		world:     world,
+		world:     gameWorld,
 		font:      font,
 		fontColor: color,
 		camera:    cam,

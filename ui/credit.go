@@ -18,7 +18,7 @@ type credit struct {
 	highlightColor rl.Color
 }
 
-func (c *credit) Update() Screen {
+func (c *credit) HandleInput() Screen {
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return c.parent
 	}

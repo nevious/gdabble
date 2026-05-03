@@ -13,7 +13,8 @@ type Entity interface {
 	IsMoving() bool
 	StopMoving()
 	UpdatePosition(timer float32)
-	LoadSprite() Entity
-	UnloadSprite()
-	Draw()
+	GetCharacterSprite() *rl.Texture2D
+	DestroyCharacter()
+	loadSprite()
+	unloadSprite()
 }

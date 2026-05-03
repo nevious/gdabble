@@ -20,6 +20,7 @@ func (w *World) Update() {
 
 		w.player.UpdatePosition(rl.GetFrameTime())
 	}
+
 }
 
 func (w *World) GetPlayer() character.Entity {
@@ -34,20 +35,18 @@ func (w *World) GetMap() GameMapInterface {
 	return w.gameMap
 }
 
-func (w *World) LoadMap()   {}
-func (w *World) UnloadMap() {}
+func (w *World) LoadMap(gameMap GameMapInterface) {
+	w.gameMap = gameMap
+}
 
 func NewWorld(tileSize float32, player character.Entity) *World {
-	m := GameMap{
-		id:             1,
-		dimensions:     rl.Vector2{X: 30, Y: 15},
-		transitions:    nil,
-		terrainMapFile: "",
-	}
+	gameMap := NewGameMap(1, rl.NewVector2(40, 20), "./assets/terrain/basicSand.png")
 
-	return &World{
+	newWorld := &World{
 		player:   player,
 		tileSize: tileSize,
-		gameMap:  &m,
 	}
+
+	newWorld.LoadMap(gameMap)
+	return newWorld
 }

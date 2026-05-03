@@ -53,31 +53,27 @@ func (p *Player) UpdatePosition(time float32) {
 	p.currentPosition.Y = grid.ApproachPoint(p.currentPosition.Y, p.targetPosition.Y, p.speed*time)
 }
 
-func (p *Player) LoadSprite() Entity {
-	texture := rl.LoadTexture(p.spriteAsset)
-	p.texture = &texture
-	return p
+func (p *Player) GetCharacterSprite() *rl.Texture2D {
+	if p.texture == nil {
+		p.loadSprite()
+	}
+
+	return p.texture
 }
 
-func (p *Player) UnloadSprite() {
+func (p *Player) DestroyCharacter() {
+	p.unloadSprite()
+}
+
+func (p *Player) loadSprite() {
+	texture := rl.LoadTexture(p.spriteAsset)
+	p.texture = &texture
+}
+
+func (p *Player) unloadSprite() {
 	if p.texture != nil {
 		rl.UnloadTexture(*p.texture)
 	}
-}
-
-func (p *Player) Draw() {
-	if p.texture == nil {
-		p.LoadSprite()
-	}
-
-	playerPosition := p.GetCurrentPosition()
-
-	rl.DrawTexture(
-		*p.texture,
-		int32(playerPosition.X)-p.texture.Width/2,
-		int32(playerPosition.Y)-(p.texture.Height-6),
-		rl.White,
-	)
 }
 
 func NewPlayer(spawn *rl.Vector2, speed float32) Entity {

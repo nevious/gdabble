@@ -37,14 +37,14 @@ func (s *settingScreen) SetParent(parent Screen) Screen {
 	return s
 }
 
-func (s *settingScreen) Update() Screen {
+func (s *settingScreen) HandleInput() Screen {
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return s.parent
 	}
 	return s
 }
 
-func NewSettingsScreen(values *[]Setting, font *rl.Font, color, highlight rl.Color) *settingScreen {
+func NewSettingsScreen(values *[]Setting, font *rl.Font, color, highlight rl.Color) Screen {
 	return &settingScreen{
 		values:    values,
 		font:      font,

@@ -7,10 +7,10 @@ import (
 
 func LogPlayerTransition(level rl.TraceLogLevel, current, target rl.Vector2) {
 	rl.TraceLog(
-		level, fmt.Sprintf("Player move from: %+v to: %+v", current, target),
+		level, "%s", fmt.Sprintf("Player move from: %+v to: %+v", current, target),
 	)
 }
 
 func LogDebug(data string, args ...any) {
-	rl.TraceLog(rl.LogDebug, fmt.Sprintf(data, args...))
+	rl.TraceLog(rl.LogDebug, "%s", fmt.Sprintf(data, args...))
 }
