@@ -1,0 +1,236 @@
+{
+	"id": 1000,
+	"terrainMapFile": "./assets/terrain/map1000/terrainMap.png",
+	"texture": "./assets/terrain/map1000/terrainTextures/textureTileMap.png",
+	"textureTileSize": 64,
+	"_comment": "Location maps are X, Y, S (cale)",
+	"colors": {
+		"ffffff": {
+			"_comment": "Top left Border",
+			"accessible": true,
+			"location": [
+				[
+					0,
+					0,
+					1
+				]
+			]
+		},
+		"d0d0d0": {
+			"_comment": "Top Right Border",
+			"accessible": true,
+			"location": [
+				[
+					2,
+					0,
+					1
+				]
+			]
+		},
+		"a5a5a5": {
+			"_comment": "Bottom Left Border",
+			"accessible": true,
+			"location": [
+				[
+					0,
+					2,
+					1
+				]
+			]
+		},
+		"222222": {
+			"_comment": "Bottom Right Border",
+			"accessible": true,
+			"location": [
+				[
+					2,
+					2,
+					1
+				]
+			]
+		},
+		"ebebeb": {
+			"_comment": "Top Center Border",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					0,
+					1
+				]
+			]
+		},
+		"b6b6b6": {
+			"_comment": "Left Center Border",
+			"accessible": true,
+			"location": [
+				[
+					0,
+					1,
+					1
+				]
+			]
+		},
+		"909090": {
+			"_comment": "Bottom Center Border",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					2,
+					1
+				]
+			]
+		},
+		"707070": {
+			"_comment": "Right Central Border",
+			"accessible": true,
+			"location": [
+				[
+					2,
+					1,
+					1
+				]
+			]
+		},
+		"000000": {
+			"_comment": "Edgeless ground",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					1,
+					1
+				]
+			]
+		},
+		"550000": {
+			"_comment": "Big Rock",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					3,
+					6,
+					1
+				]
+			]
+		},
+		"990000": {
+			"_comment": "Big Bush",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					0,
+					6,
+					1
+				]
+			]
+		},
+		"aa0000": {
+			"_comment": "Medium Bush",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					1,
+					6,
+					1
+				]
+			]
+		},
+		"bb0000": {
+			"_comment": "Small Bush",
+			"accessible": true,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					1,
+					6,
+					1
+				]
+			]
+		},
+		"829546": {
+			"_comment": "Yello bushy tree",
+			"accsessible": true,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					7,
+					6,
+					3
+				]
+			]
+		},
+		"82dc2b": {
+			"_comment": "Green Yellow bushy tree",
+			"accessible": false,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					10,
+					0,
+					3
+				]
+			]
+		},
+		"6d9546": {
+			"_comment": "Tall Green Tree",
+			"accessible": false,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					10,
+					3,
+					3
+				]
+			]
+		},
+		"455e2c": {
+			"_comment": "Small Green Tree",
+			"accessible": false,
+			"location": [
+				[
+					1,
+					1,
+					1
+				],
+				[
+					10,
+					6,
+					3
+				]
+			]
+		}
+	}
+}

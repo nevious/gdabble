@@ -14,3 +14,7 @@ func LogPlayerTransition(level rl.TraceLogLevel, current, target rl.Vector2) {
 func LogDebug(data string, args ...any) {
 	rl.TraceLog(rl.LogDebug, "%s", fmt.Sprintf(data, args...))
 }
+
+func LogError(data string, args ...any) {
+	rl.TraceLog(rl.LogError, "%s", fmt.Sprintf("%s", args...))
+}

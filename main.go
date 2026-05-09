@@ -3,10 +3,11 @@ package main
 /* TODO
  * - [X] Normalize coordinate space. We're a little in cell space and a little in pixel space
  * - [-] Implement movement queue, so user can click 2 or 3 times before movement is blocked [^1]
- * - [ ] Implement enemies as Entities
  * - [X] Decouple World and Menu Screens
+ * - [ ] Implement enemies as Entities
+ * - [ ] Implement dynamic map loading
  * - [ ] Implement a sprite animation
- * - [ ] Player spwn is in limbo if the map is not big enough
+ * - [ ] Player spawn is in screen dimensions, not world or map dimensions
  *
  * [^1]: The queue prooved extremly finicky. Queueing and dequeing while maintaining data integrity turns out to be a bit
  *       of a nightmare, which is why i ditched it for a "redirect approach" by removing the block when moving.
@@ -32,14 +33,15 @@ var (
 	mainForeground = rl.NewColor(226, 226, 226, 255) // #e2e2e2
 
 	/* Sizing */
-	width  int32 = 800
-	height int32 = 450
+	width  int32 = 1200
+	height int32 = 650
 
 	/* Font */
 	gameFont rl.Font
 
 	/* Map */
-	cellWidth float32 = 32
+	cellWidth  float32 = 32
+	mapDataDir string  = "./data/map/"
 
 	/* Default speed */
 	speed float32 = 175
@@ -63,7 +65,7 @@ func createPlayer(speed float32) character.Entity {
 
 // Create a world with a player
 func createWorld(cellWidth float32, player character.Entity) *world.World {
-	return world.NewWorld(cellWidth, player)
+	return world.NewWorld(cellWidth, player, mapDataDir)
 }
 
 // Create an empty Credits SCreen

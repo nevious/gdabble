@@ -1,121 +1,130 @@
 package world
 
+/*
+ * Texture to Terrain Mapping
+ *
+ * TODO: This is description is no longer accurate.
+ * For each channel we have 8 values that can be encoded and there are no composits
+ * between colors. The only "composite" is black and white. Each channel allowes for
+ * encoding of 8 fields for a total of 24 values.
+ * For each value, we must know which tilemap to load and which portion
+ * of the tilemap to load for a given pixel.
+ *
+ * For edges, we need to know what's around the given pixel
+ *
+ * All information must be available from the json, otherwise we have a split brain situation.
+ * Therefore each json must define:
+ * - All textures to load with a reference
+ * - Each Color used must map to both a texture AND a coordinate
+ */
+
 import (
+	"encoding/json"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"io"
+	"main/utils"
+	"os"
 )
-
-type tileType int
-
-const (
-	TL tileType = iota
-	TN
-	TR
-	LN
-	RN
-	BL
-	BN
-	BR
-	C
-)
-
-type Transition struct {
-	position      *rl.Vector2
-	destinationID int
-	spawnPoint    *rl.Vector2 // Where on the destination to spawn
-}
 
 type GameMapInterface interface {
 	GetSize() *rl.Vector2
 	GetTexture() *rl.Texture2D
-	GetTileAt(x, y int) *rl.Rectangle
+	GetTileAt(x, y int) []RectangleWithScale
+	GetId() int
+}
+
+type JsonMetaData struct {
+	ID              int                 `json:"id"`
+	TerrainMapFile  string              `json:"terrainMapFile"`
+	Texture         string              `json:"texture"`
+	TextureTileSize int                 `json:"textureTileSize"`
+	Colors          map[string]ColorMap `json:"colors"`
+}
+
+type ColorMap struct {
+	Locations   [][]int `json:"location"` // X, Y, Scale
+	ScaleFactor int     `json:"scale"`
+	Accessible  bool    `json:"accessible"`
 }
 
 type GameMap struct {
 	id              int
-	dimensions      rl.Vector2
-	transitions     []Transition
-	terrainData     [][]tileType
-	tileSetFile     string
-	texture         *rl.Texture2D
+	terrainMap      *rl.Image
+	texture         rl.Texture2D
+	colors          map[string]ColorMap
 	textureTileSize int
 }
 
-func (m *GameMap) GetSize() *rl.Vector2 {
-	return &m.dimensions
+type RectangleWithScale struct {
+	Rect  rl.Rectangle
+	Scale float32
 }
 
-// Get the texture rectangle for given grid coordinates
-// MUST be grid coordinates, not world or screen coordinates
-func (m *GameMap) GetTileAt(x, y int) *rl.Rectangle {
-	// First, look up the type of tile we need
-	var srcX, srcY float32
-	ttSize := float32(m.textureTileSize)
+func (m *GameMap) GetId() int {
+	return m.id
+}
 
-	switch tileType(m.terrainData[y][x]) {
-	case TL:
-		srcX, srcY = 0, 0
-	case TN:
-		srcX, srcY = 1, 0
-	case TR:
-		srcX, srcY = 2, 0
-	case LN:
-		srcX, srcY = 0, 1
-	case RN:
-		srcX, srcY = 2, 1
-	case BL:
-		srcX, srcY = 0, 2
-	case BN:
-		srcX, srcY = 1, 2
-	case BR:
-		srcX, srcY = 2, 2
-	default:
-		srcX, srcY = 1, 1
+func (m *GameMap) GetSize() *rl.Vector2 {
+	return &rl.Vector2{
+		X: float32(m.terrainMap.Width),
+		Y: float32(m.terrainMap.Height),
+	}
+}
+
+// Get the textures rectangle for given grid coordinates
+// MUST be grid coordinates, not world or screen coordinates
+func (m *GameMap) GetTileAt(x, y int) []RectangleWithScale {
+	ttSize := float32(m.textureTileSize)
+	var result []RectangleWithScale
+
+	mapColor := rl.GetImageColor(*m.terrainMap, int32(x), int32(y))
+	hexCol := utils.RaylibColorToHex(mapColor)
+
+	for _, loc := range m.colors[hexCol].Locations {
+		srcX, srcY, scale := float32(loc[0]), float32(loc[1]), float32(loc[2])
+		multiplier := ttSize * scale
+		rayRect := rl.NewRectangle(srcX*ttSize, srcY*ttSize, multiplier, multiplier)
+		rect := &RectangleWithScale{rayRect, scale}
+		result = append(result, *rect)
+
 	}
 
-	srcRect := rl.NewRectangle(srcX*ttSize, srcY*ttSize, ttSize, ttSize)
-	return &srcRect
+	return result
 }
 
 func (m *GameMap) GetTexture() *rl.Texture2D {
-	if m.texture == nil {
-		texture := rl.LoadTexture(m.tileSetFile)
-		m.texture = &texture
-	}
-
-	return m.texture
+	return &m.texture
 }
 
-func NewGameMap(id int, dimensions rl.Vector2, tileSetFile string, textureTileSize int) GameMapInterface {
-	terrain := [][]tileType{
-		{TL, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TN, TR},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{LN, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, C, RN},
-		{BL, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BN, BR},
+// Create a new map object from a json file given by `path`
+func NewGameMapFromJson(path string) GameMapInterface {
+	pFD, err := os.Open(path)
+	if err != nil {
+		utils.LogError("Unable to read %s: %+v", path, err)
+	}
+	utils.LogDebug("pFD: %+v", pFD)
+
+	content, err := io.ReadAll(pFD)
+	if err != nil {
+		utils.LogError("Unable t read from file: %+v", err)
+	}
+	utils.LogDebug("content: %+v", content)
+
+	jsonMetaData := &JsonMetaData{}
+	gameMap := &GameMap{}
+	err = json.Unmarshal(content, jsonMetaData)
+	if err != nil {
+		utils.LogError("Unable to parse json: %+v", err)
 	}
 
-	return &GameMap{
-		id:              id,
-		dimensions:      dimensions,
-		transitions:     nil,
-		tileSetFile:     tileSetFile,
-		terrainData:     terrain,
-		textureTileSize: textureTileSize,
-	}
+	utils.LogDebug("New JSON Loaded: %+v", jsonMetaData)
 
+	terrainImage := rl.LoadImage(jsonMetaData.TerrainMapFile)
+	gameMap.id = jsonMetaData.ID
+	gameMap.terrainMap = terrainImage
+	gameMap.texture = rl.LoadTexture(jsonMetaData.Texture)
+	gameMap.colors = jsonMetaData.Colors
+	gameMap.textureTileSize = jsonMetaData.TextureTileSize
+
+	return gameMap
 }

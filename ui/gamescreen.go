@@ -3,22 +3,26 @@ package ui
 import (
 	"fmt"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"main/character"
 	"main/grid"
 	"main/utils"
 	"main/world"
 )
 
-type gameScreen struct {
+type GameScreen struct {
 	world     *world.World
+	worldMap  world.GameMapInterface
 	font      *rl.Font
 	fontColor rl.Color
 	parent    Screen
 	camera    *rl.Camera2D
 	highlight rl.Color
+	player    character.Entity
 }
 
+// TODO: Bruh... wth is a camerainput....
 // Update camera Target and Offset
-func (s *gameScreen) handleCameraInput() {
+func (s *GameScreen) handleCameraInput() {
 	// Player position
 	p := s.world.GetPlayer()
 	s.camera.Target.X = float32(int(p.GetCurrentPosition().X))
@@ -35,7 +39,7 @@ func (s *gameScreen) handleCameraInput() {
 	}
 }
 
-func (s *gameScreen) handlePlayerInput() {
+func (s *GameScreen) handlePlayerInput() {
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 		p := s.world.GetPlayer()
 
@@ -60,7 +64,7 @@ func (s *gameScreen) handlePlayerInput() {
 	}
 }
 
-func (s *gameScreen) drawOverlayInterface() {
+func (s *GameScreen) renderOverlayInterface() {
 	detail := fmt.Sprintf("%dx%d@%d FPS", rl.GetScreenWidth(), rl.GetScreenHeight(), rl.GetFPS())
 	worldMap := s.world.GetMap().GetSize()
 
@@ -77,11 +81,10 @@ func (s *gameScreen) drawOverlayInterface() {
 
 }
 
-func (s *gameScreen) drawGridLines() {
+func (s *GameScreen) renderNavigationCross() {
 	tSize := s.world.GetTileSize()
 	rl.BeginMode2D(*s.camera)
-	gridColor, gridHighlightColor := s.highlight, s.highlight
-	gridColor.A = 100
+	_, gridHighlightColor := s.highlight, s.highlight
 	gridHighlightColor.A = 255
 	mousePosition := rl.GetScreenToWorld2D(rl.GetMousePosition(), *s.camera)
 	mouseCell := *grid.GetCellFromPixelPosition(&mousePosition, s.world.GetTileSize())
@@ -90,34 +93,50 @@ func (s *gameScreen) drawGridLines() {
 	rl.EndMode2D()
 }
 
-func (s *gameScreen) drawTileMap() {
-	// Dummy function, draw a single tile across everything
-	// not what we're gonna have
-	worldMap := s.world.GetMap().GetSize()
+func (s *GameScreen) loadPlayerIntoMap() {
+	s.player = s.world.GetPlayer()
+	playerMapId := s.player.GetCurrentMap()
+
+	if s.worldMap = s.world.GetMap(); s.worldMap == nil || s.worldMap.GetId() != playerMapId {
+		s.world.SetPlayerMapPosition(s.player.GetCurrentMap())
+		s.worldMap = s.world.GetMap()
+	}
+}
+
+// yStart, yStop in map coordinates
+func (s *GameScreen) renderMap() {
 	tSize := s.world.GetTileSize()
-	texture := *s.world.GetMap().GetTexture()
+	texture := *s.worldMap.GetTexture()
+	mapSize := s.worldMap.GetSize()
 
 	rl.BeginMode2D(*s.camera)
 
-	for x := float32(0); x < worldMap.X; x++ {
-		for y := float32(0); y < worldMap.Y; y++ {
+	for x := float32(0); x < mapSize.X; x++ {
+		for y := float32(0); y < mapSize.Y; y++ {
 			destPosition := rl.NewVector2(x*tSize, y*tSize)
-			destRect := rl.NewRectangle(destPosition.X, destPosition.Y, tSize, tSize)
-			textureRect := s.world.GetMap().GetTileAt(int(x), int(y))
-			rl.DrawTexturePro(texture, *textureRect, destRect, rl.NewVector2(0, 0), 0, rl.White)
+			textureRectangles := s.world.GetMap().GetTileAt(int(x), int(y))
+			for _, rect := range textureRectangles {
+				X, Y := destPosition.X, destPosition.Y
+				if rect.Scale > 1 {
+					X, Y = destPosition.X-((tSize*rect.Scale)/2), destPosition.Y-(tSize*rect.Scale-tSize)
+				}
+				destRect := rl.NewRectangle(X, Y, tSize*rect.Scale, tSize*rect.Scale)
+				rl.DrawTexturePro(texture, rect.Rect, destRect, rl.NewVector2(0, 0), 0, rl.White)
+			}
 		}
 	}
 
 	rl.EndMode2D()
 }
 
-func (s *gameScreen) drawPlayer() {
+func (s *GameScreen) renderPlayer() {
 	rl.BeginMode2D(*s.camera)
 	p := s.world.GetPlayer()
+	pPos := p.GetCurrentPosition()
+	tSize := s.world.GetTileSize()
+
 	if p.GetCurrentPosition() != nil {
-		pPos := p.GetCurrentPosition()
 		cx, cy := int32(pPos.X), int32(pPos.Y)
-		rl.DrawCircle(cx, cy, 13, rl.DarkGray) // Acting as a shaodw for now
 
 		// some debugging information about player position
 		rl.DrawText(fmt.Sprintf("%d | %d - Raw", cx, cy), cx, cy+20, 10, rl.SkyBlue)
@@ -126,29 +145,33 @@ func (s *gameScreen) drawPlayer() {
 		screenPos := rl.GetWorldToScreen2D(worldPos, *s.camera)
 		rl.DrawText(fmt.Sprintf("%0f | %0f - Back2Screen", screenPos.X, screenPos.Y), cx, cy+40, 10, rl.SkyBlue)
 
-		// p.Draw()
-		playerSprite := p.GetCharacterSprite()
-		rl.DrawTexture(
-			*playerSprite,
-			int32(pPos.X)-playerSprite.Width/2,
-			int32(pPos.Y)-playerSprite.Height,
+		playerTexture, playerTextureLocation := p.GetCharacterSprite()
+		playerRectangle := rl.NewRectangle(
+			pPos.X-float32(tSize/2),
+			pPos.Y-float32(tSize/2),
+			tSize,
+			tSize,
+		)
+		rl.DrawTexturePro(
+			*playerTexture,
+			*playerTextureLocation,
+			playerRectangle,
+			rl.NewVector2(0, 0),
+			0,
 			rl.White,
 		)
 	}
 	rl.EndMode2D()
 }
 
-/*
- * Interface Functions
- */
-
-func (s *gameScreen) SetParent(parent Screen) Screen {
+// Set parent screen to this screen
+func (s *GameScreen) SetParent(parent Screen) Screen {
 	s.parent = parent
 	return s
 }
 
 // Function is called once per frame before drawing
-func (s *gameScreen) HandleInput() Screen {
+func (s *GameScreen) HandleInput() Screen {
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return s.parent
 	}
@@ -162,17 +185,20 @@ func (s *gameScreen) HandleInput() Screen {
 
 // Function is called once the Drawing canvas has started
 // it draws the current state
-func (s *gameScreen) Draw() {
-	// Dispatch drawing, each function should call their own BeginMode2D
-	// if needed and provide their own state data like dimensions
-	s.drawTileMap()
-	s.drawGridLines()
-	s.drawPlayer()
-	s.drawOverlayInterface()
+func (s *GameScreen) Draw() {
+	if !s.world.MapsAreLoaded() {
+		s.world.LoadMaps()
+	}
+	s.loadPlayerIntoMap()
+
+	s.renderMap()
+	s.renderPlayer()
+	s.renderNavigationCross()
+	s.renderOverlayInterface()
 }
 
 func NewGameScreen(gameWorld *world.World, font *rl.Font, color, highlight rl.Color, cam *rl.Camera2D) Screen {
-	return &gameScreen{
+	return &GameScreen{
 		world:     gameWorld,
 		font:      font,
 		fontColor: color,

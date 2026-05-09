@@ -12,6 +12,7 @@ type Player struct {
 	speed           float32 // Using rl.GetFrameTime will result in a pixel per second paradigm
 	spriteAsset     string
 	texture         *rl.Texture2D
+	mapId           int
 }
 
 func (p *Player) HasArrived() bool {
@@ -53,21 +54,23 @@ func (p *Player) UpdatePosition(time float32) {
 	p.currentPosition.Y = grid.ApproachPoint(p.currentPosition.Y, p.targetPosition.Y, p.speed*time)
 }
 
-func (p *Player) GetCharacterSprite() *rl.Texture2D {
+// Get the rectangle with the character sprite
+// For now this is basically the initial character based on metadata
+// which we are hardcoding in here for now
+func (p *Player) GetCharacterSprite() (*rl.Texture2D, *rl.Rectangle) {
 	if p.texture == nil {
-		p.loadSprite()
+		texture := rl.LoadTexture(p.spriteAsset)
+		p.texture = &texture
 	}
 
-	return p.texture
+	var size float32 = 96
+	textureRectangle := rl.NewRectangle(48, 48, size, size)
+
+	return p.texture, &textureRectangle
 }
 
 func (p *Player) DestroyCharacter() {
 	p.unloadSprite()
-}
-
-func (p *Player) loadSprite() {
-	texture := rl.LoadTexture(p.spriteAsset)
-	p.texture = &texture
 }
 
 func (p *Player) unloadSprite() {
@@ -76,11 +79,19 @@ func (p *Player) unloadSprite() {
 	}
 }
 
+func (p *Player) GetCurrentMap() int {
+	// TODO
+	// Implement and replace with p.currentMap
+	// -1 if no map is loaded
+	return 1000
+}
+
 func NewPlayer(spawn *rl.Vector2, speed float32) Entity {
 	return &Player{
 		currentPosition: spawn,
 		speed:           speed,
 		moving:          false,
-		spriteAsset:     "assets/character/playerPlaceHolderSprite.png",
+		spriteAsset:     "./assets/TinySwordsFreePack/Units/Blue Units/Warrior/Warrior_Idle.png",
+		//spriteAsset: "./assets/character/playerPlaceHolderSprite.png",
 	}
 }
