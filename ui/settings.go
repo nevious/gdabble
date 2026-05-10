@@ -25,7 +25,7 @@ type settingScreen struct {
 	parent    Screen
 }
 
-func (s *settingScreen) Draw() {
+func (s *settingScreen) Render() {
 	t := "Settings"
 	var size int32 = 35
 	offset := utils.GetCenterForText(t, size, *s.font)
@@ -37,7 +37,7 @@ func (s *settingScreen) SetParent(parent Screen) Screen {
 	return s
 }
 
-func (s *settingScreen) HandleInput() Screen {
+func (s *settingScreen) Update() Screen {
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return s.parent
 	}

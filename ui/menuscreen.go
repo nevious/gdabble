@@ -11,15 +11,6 @@ type MenuItem struct {
 	Screen Screen
 }
 
-// TODO: Move to dedicated file in case we want to quit from multiple places
-// and continue to have things seperated by purpose.
-// Quit Screen hack
-type QuitScreen struct{}
-
-func (q *QuitScreen) SetParent(parent Screen) Screen { return q }
-func (q *QuitScreen) Draw()                          {}
-func (q *QuitScreen) HandleInput() Screen            { return q }
-
 // Menu Structure
 // -------------------------------------------------
 type menu struct {
@@ -33,7 +24,7 @@ type menu struct {
 // menu is the root screen element, it does not have a parent
 func (m *menu) SetParent(parent Screen) Screen { return m }
 
-func (m *menu) HandleInput() Screen {
+func (m *menu) Update() Screen {
 	if rl.IsKeyPressed(rl.KeyEnter) {
 		items := m.menuItems
 		return (*items)[m.index].Screen
@@ -54,7 +45,7 @@ func (m *menu) HandleInput() Screen {
 	return m
 }
 
-func (m *menu) Draw() {
+func (m *menu) Render() {
 	t := "Main Menu"
 	var size int32 = 25
 	var vOffset int32 = 30 // vertical offset between choices

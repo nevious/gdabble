@@ -15,7 +15,7 @@ type Player struct {
 	mapId           int
 }
 
-func (p *Player) HasArrived() bool {
+func (p *Player) ReachDestination() bool {
 	if p.currentPosition.X == p.targetPosition.X && p.currentPosition.Y == p.targetPosition.Y {
 		return true
 	}
@@ -27,8 +27,7 @@ func (p *Player) GetCurrentPosition() *rl.Vector2 {
 }
 
 func (p *Player) SetCurrentPosition(position *rl.Vector2) {
-	p.currentPosition.X = position.X
-	p.currentPosition.Y = position.Y
+	p.currentPosition = position
 }
 
 func (p *Player) GetTargetPosition() *rl.Vector2 {
@@ -44,12 +43,19 @@ func (p *Player) IsMoving() bool {
 	return p.moving
 }
 
+// Stop moving and set the current position to the target position
+// A player force-stop requires a call to SetTargetPosition() before StopMoving()
 func (p *Player) StopMoving() {
 	p.currentPosition = p.targetPosition
 	p.moving = false
 }
 
-func (p *Player) UpdatePosition(time float32) {
+// NOTE
+// should eventually be orchestrated via
+// Update function, which can be part of Entity interface
+// Function to update player position,
+func (p *Player) MoveForFrame() {
+	time := rl.GetFrameTime()
 	p.currentPosition.X = grid.ApproachPoint(p.currentPosition.X, p.targetPosition.X, p.speed*time)
 	p.currentPosition.Y = grid.ApproachPoint(p.currentPosition.Y, p.targetPosition.Y, p.speed*time)
 }
@@ -57,19 +63,19 @@ func (p *Player) UpdatePosition(time float32) {
 // Get the rectangle with the character sprite
 // For now this is basically the initial character based on metadata
 // which we are hardcoding in here for now
-func (p *Player) GetCharacterSprite() (*rl.Texture2D, *rl.Rectangle) {
+func (p *Player) GetSprite() (*rl.Texture2D, *rl.Rectangle) {
 	if p.texture == nil {
 		texture := rl.LoadTexture(p.spriteAsset)
 		p.texture = &texture
 	}
 
-	var size float32 = 96
+	var size float32 = 96 // Hardcoded for now
 	textureRectangle := rl.NewRectangle(48, 48, size, size)
 
 	return p.texture, &textureRectangle
 }
 
-func (p *Player) DestroyCharacter() {
+func (p *Player) Destroy() {
 	p.unloadSprite()
 }
 
@@ -81,8 +87,7 @@ func (p *Player) unloadSprite() {
 
 func (p *Player) GetCurrentMap() int {
 	// TODO
-	// Implement and replace with p.currentMap
-	// -1 if no map is loaded
+	// Implement persistent player state
 	return 1000
 }
 
@@ -92,6 +97,5 @@ func NewPlayer(spawn *rl.Vector2, speed float32) Entity {
 		speed:           speed,
 		moving:          false,
 		spriteAsset:     "./assets/TinySwordsFreePack/Units/Blue Units/Warrior/Warrior_Idle.png",
-		//spriteAsset: "./assets/character/playerPlaceHolderSprite.png",
 	}
 }

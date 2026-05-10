@@ -1,6 +1,6 @@
 {
-	"id": 1000,
-	"terrainMapFile": "./assets/terrain/map1000/terrainMap.png",
+	"id": 1001,
+	"terrainMapFile": "./assets/terrain/map1001/terrainMap.png",
 	"texture": "./assets/terrain/map1000/terrainTextures/textureTileMap.png",
 	"textureTileSize": 64,
 	"_comment": "Location maps are X, Y, Scale, Depth",

@@ -7,7 +7,7 @@ package main
  * - [ ] Implement enemies as Entities
  * - [ ] Implement dynamic map loading
  * - [ ] Implement a sprite animation
- * - [ ] Player spawn is in screen dimensions, not world or map dimensions
+ * - [X] Player spawn is in screen dimensions, not world or map dimensions
  *
  * [^1]: The queue prooved extremly finicky. Queueing and dequeing while maintaining data integrity turns out to be a bit
  *       of a nightmare, which is why i ditched it for a "redirect approach" by removing the block when moving.
@@ -40,6 +40,7 @@ var (
 	gameFont rl.Font
 
 	/* Map */
+	// 48 pixel grid also looks nice at least with 64p textures!
 	cellWidth  float32 = 32
 	mapDataDir string  = "./data/map/"
 
@@ -119,7 +120,7 @@ func main() {
 	// Build things in a constructor way
 	// Might not be needed everywhere, but should give us options
 	player := createPlayer(speed)
-	defer player.DestroyCharacter()
+	defer player.Destroy()
 	camera := createCamera(player)
 	world := createWorld(cellWidth, player)
 	gameScreen := createGameScreen(world, &gameFont, mainForeground, accentBlue, camera)
@@ -144,15 +145,23 @@ func main() {
 	var currentScreen ui.Screen = menuScreen
 
 	for !rl.WindowShouldClose() {
-		currentScreen = currentScreen.HandleInput()
+		// If the screen changes, restart the game loop
+		// w/o drawing anything. Avoids stale frames
+		// and makes sure HandleInput() is called on the needed Screen
+		s := currentScreen.Update()
+		if s != currentScreen {
+			currentScreen = s
+			continue
+		}
 
+		// On quit we quit :)
 		if _, ok := currentScreen.(*ui.QuitScreen); ok {
 			break
 		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(mainBackground)
-		currentScreen.Draw()
+		currentScreen.Render()
 		rl.EndDrawing()
 	}
 }

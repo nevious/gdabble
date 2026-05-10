@@ -1,7 +1,10 @@
 package ui
 
 type Screen interface {
-	HandleInput() Screen // Return active/selected Screen
-	Draw()               // Refresh on tick
+	// Update the screen state and return a screen
+	Update() Screen
+	// Render the Screen
+	Render()
+	// Set the Screens parent Screen
 	SetParent(parent Screen) Screen
 }

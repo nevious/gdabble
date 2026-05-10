@@ -18,14 +18,14 @@ type credit struct {
 	highlightColor rl.Color
 }
 
-func (c *credit) HandleInput() Screen {
+func (c *credit) Update() Screen {
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return c.parent
 	}
 	return c
 }
 
-func (c *credit) Draw() {
+func (c *credit) Render() {
 	t := "Credits"
 	var size int32 = 35
 	offset := utils.GetCenterForText(t, size, *c.font)

@@ -1,7 +1,9 @@
 package grid
 
-import rl "github.com/gen2brain/raylib-go/raylib"
-import "math"
+import (
+	rl "github.com/gen2brain/raylib-go/raylib"
+	"math"
+)
 
 func GetCellFromPixelPosition(position *rl.Vector2, cellWidth float32) *rl.Vector2 {
 	x := math.Floor(float64(position.X / float32(cellWidth)))
@@ -20,6 +22,15 @@ func GetCenterCellCoordinates(pos *rl.Vector2, cellWidth float32) *rl.Vector2 {
 	return &rl.Vector2{
 		X: x, Y: y,
 	}
+}
+
+// Check if a given `pos` is within the `bounds`
+// All in world coordinates, not pixel or screen
+func CellWithinMapBounds(cell, size *rl.Vector2) bool {
+	if cell.X >= 0 && cell.X < size.X && cell.Y >= 0 && cell.Y < size.Y {
+		return true
+	}
+	return false
 }
 
 // Calculate the linerar interpolation for a value

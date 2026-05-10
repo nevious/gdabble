@@ -1,9 +1,15 @@
 package ui
 
+/*
+ * NOTE
+ * I think we do _a_lot_ of game logic in the UI package, that should be handled in
+ * the world. UI should just receive stuff to render, not neccessarily device where
+ * to render what
+ */
+
 import (
 	"fmt"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/character"
 	"main/grid"
 	"main/utils"
 	"main/world"
@@ -11,23 +17,19 @@ import (
 
 type GameScreen struct {
 	world     *world.World
-	worldMap  world.GameMapInterface
 	font      *rl.Font
 	fontColor rl.Color
 	parent    Screen
 	camera    *rl.Camera2D
 	highlight rl.Color
-	player    character.Entity
 }
 
-// TODO: Bruh... wth is a camerainput....
-// Update camera Target and Offset
-func (s *GameScreen) handleCameraInput() {
-	// Player position
-	p := s.world.GetPlayer()
-	s.camera.Target.X = float32(int(p.GetCurrentPosition().X))
-	s.camera.Target.Y = float32(int(p.GetCurrentPosition().Y))
-	// Casting to int before, so the value is clamped to a near number
+// Update tracking of the camera and zoomdd
+// Positions are casted to int and then to float32 again. This enforces
+// whole number values
+func (s *GameScreen) updateCamera() {
+	s.camera.Target.X = float32(int(s.world.GetPlayerPosition().X))
+	s.camera.Target.Y = float32(int(s.world.GetPlayerPosition().Y))
 	s.camera.Offset.X = float32(int(rl.GetScreenWidth()) / 2)
 	s.camera.Offset.Y = float32(int(rl.GetScreenHeight()) / 2)
 
@@ -39,31 +41,21 @@ func (s *GameScreen) handleCameraInput() {
 	}
 }
 
+// Set the players position via world to the clicked cell
 func (s *GameScreen) handlePlayerInput() {
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
-		p := s.world.GetPlayer()
 
 		vec := rl.GetScreenToWorld2D(rl.GetMousePosition(), *s.camera)
 		clickedCell := grid.GetCellFromPixelPosition(&vec, s.world.GetTileSize())
-		worldMapSize := s.world.GetMap().GetSize()
 
-		// TODO
-		// Whether a cell is inside the world grid is something
-		// that should behandled in the grid package
-		if clickedCell.X >= 0 && clickedCell.X < worldMapSize.X &&
-			clickedCell.Y >= 0 && clickedCell.Y < worldMapSize.Y {
-			p.SetTargetPosition(
-				grid.GetCenterCellCoordinates(clickedCell, s.world.GetTileSize()),
-			)
+		if grid.CellWithinMapBounds(clickedCell, s.world.GetMap().GetSize()) {
+			s.world.SetPlayerPosition(grid.GetCenterCellCoordinates(clickedCell, s.world.GetTileSize()))
 		}
-		utils.LogPlayerTransition(
-			rl.LogDebug,
-			*p.GetCurrentPosition(),
-			*p.GetTargetPosition(),
-		)
 	}
 }
 
+// Render the overall interface
+// NOTE: This function lives in screen space, not world or cell space
 func (s *GameScreen) renderOverlayInterface() {
 	detail := fmt.Sprintf("%dx%d@%d FPS", rl.GetScreenWidth(), rl.GetScreenHeight(), rl.GetFPS())
 	worldMap := s.world.GetMap().GetSize()
@@ -81,6 +73,7 @@ func (s *GameScreen) renderOverlayInterface() {
 
 }
 
+// Render the Cell Border under the mouse
 func (s *GameScreen) renderNavigationCross() {
 	tSize := s.world.GetTileSize()
 	rl.BeginMode2D(*s.camera)
@@ -88,115 +81,74 @@ func (s *GameScreen) renderNavigationCross() {
 	gridHighlightColor.A = 255
 	mousePosition := rl.GetScreenToWorld2D(rl.GetMousePosition(), *s.camera)
 	mouseCell := *grid.GetCellFromPixelPosition(&mousePosition, s.world.GetTileSize())
-	rect := rl.NewRectangle((mouseCell.X*tSize)-1, (mouseCell.Y*tSize)-1, tSize, tSize)
-	rl.DrawRectangleLinesEx(rect, 1, gridHighlightColor)
+
+	if grid.CellWithinMapBounds(&mouseCell, s.world.GetMap().GetSize()) {
+		rect := rl.NewRectangle((mouseCell.X*tSize)-1, (mouseCell.Y*tSize)-1, tSize, tSize)
+		rl.DrawRectangleLinesEx(rect, 1, gridHighlightColor)
+	}
 	rl.EndMode2D()
 }
 
-func (s *GameScreen) loadPlayerIntoMap() {
-	s.player = s.world.GetPlayer()
-	playerMapId := s.player.GetCurrentMap()
-
-	if s.worldMap = s.world.GetMap(); s.worldMap == nil || s.worldMap.GetId() != playerMapId {
-		s.world.SetPlayerMapPosition(s.player.GetCurrentMap())
-		s.worldMap = s.world.GetMap()
-	}
-}
-
-// yStart, yStop in map coordinates
+// Render the Map on the screeen
 func (s *GameScreen) renderMap() {
-	tSize := s.world.GetTileSize()
-	texture := *s.worldMap.GetTexture()
-	mapSize := s.worldMap.GetSize()
+	rotation := rl.NewVector2(0, 0)
 
 	rl.BeginMode2D(*s.camera)
-
-	for x := float32(0); x < mapSize.X; x++ {
-		for y := float32(0); y < mapSize.Y; y++ {
-			destPosition := rl.NewVector2(x*tSize, y*tSize)
-			textureRectangles := s.world.GetMap().GetTileAt(int(x), int(y))
-			for _, rect := range textureRectangles {
-				X, Y := destPosition.X, destPosition.Y
-				if rect.Scale > 1 {
-					X, Y = destPosition.X-((tSize*rect.Scale)/2), destPosition.Y-(tSize*rect.Scale-tSize)
-				}
-				destRect := rl.NewRectangle(X, Y, tSize*rect.Scale, tSize*rect.Scale)
-				rl.DrawTexturePro(texture, rect.Rect, destRect, rl.NewVector2(0, 0), 0, rl.White)
-			}
-		}
-	}
-
-	rl.EndMode2D()
-}
-
-func (s *GameScreen) renderPlayer() {
-	rl.BeginMode2D(*s.camera)
-	p := s.world.GetPlayer()
-	pPos := p.GetCurrentPosition()
-	tSize := s.world.GetTileSize()
-
-	if p.GetCurrentPosition() != nil {
-		cx, cy := int32(pPos.X), int32(pPos.Y)
-
-		// some debugging information about player position
-		rl.DrawText(fmt.Sprintf("%d | %d - Raw", cx, cy), cx, cy+20, 10, rl.SkyBlue)
-		worldPos := rl.GetScreenToWorld2D(*pPos, *s.camera)
-		rl.DrawText(fmt.Sprintf("%0f | %0f - World", worldPos.X, worldPos.Y), cx, cy+30, 10, rl.SkyBlue)
-		screenPos := rl.GetWorldToScreen2D(worldPos, *s.camera)
-		rl.DrawText(fmt.Sprintf("%0f | %0f - Back2Screen", screenPos.X, screenPos.Y), cx, cy+40, 10, rl.SkyBlue)
-
-		playerTexture, playerTextureLocation := p.GetCharacterSprite()
-		playerRectangle := rl.NewRectangle(
-			pPos.X-float32(tSize/2),
-			pPos.Y-float32(tSize/2),
-			tSize,
-			tSize,
-		)
-		rl.DrawTexturePro(
-			*playerTexture,
-			*playerTextureLocation,
-			playerRectangle,
-			rl.NewVector2(0, 0),
-			0,
-			rl.White,
-		)
+	for _, tile := range s.world.GetRenderListItems() {
+		rl.DrawTexturePro(tile.Texture, tile.Src, tile.Dst, rotation, 0, rl.White)
 	}
 	rl.EndMode2D()
 }
 
-// Set parent screen to this screen
-func (s *GameScreen) SetParent(parent Screen) Screen {
-	s.parent = parent
-	return s
+// Render UI elements of the character
+func (s *GameScreen) renderCharacterElements() {
+	rl.BeginMode2D(*s.camera)
+	playerPosition := *s.world.GetPlayerPosition()
+
+	cx, cy := int32(playerPosition.X), int32(playerPosition.Y)
+
+	// some debugging information about player position
+	rl.DrawText(fmt.Sprintf("Row: %d | %d", cx, cy), cx, cy+20, 10, rl.DarkGray)
+	worldPos := rl.GetScreenToWorld2D(playerPosition, *s.camera)
+	rl.DrawText(fmt.Sprintf("World: %0f | %0f", worldPos.X, worldPos.Y), cx, cy+30, 10, rl.DarkGray)
+	screenPos := rl.GetWorldToScreen2D(worldPos, *s.camera)
+	rl.DrawText(fmt.Sprintf("Screen: %0f | %0f", screenPos.X, screenPos.Y), cx, cy+40, 10, rl.DarkGray)
+	mousePosition := rl.GetMousePosition()
+	rl.DrawText(fmt.Sprintf("Mouse: %0f | %0f", mousePosition.X, mousePosition.Y), cx, cy+50, 10, rl.DarkGray)
+
+	rl.EndMode2D()
 }
 
 // Function is called once per frame before drawing
-func (s *GameScreen) HandleInput() Screen {
+// is enabled
+func (s *GameScreen) Update() Screen {
 	if rl.IsKeyPressed(rl.KeyBackspace) {
 		return s.parent
 	}
 
 	s.world.Update() // Update world state and game logic
 	s.handlePlayerInput()
-	s.handleCameraInput()
+	s.updateCamera()
 
 	return s
 }
 
-// Function is called once the Drawing canvas has started
-// it draws the current state
-func (s *GameScreen) Draw() {
-	if !s.world.MapsAreLoaded() {
-		s.world.LoadMaps()
-	}
-	s.loadPlayerIntoMap()
+// Set parent screen of this screen
+func (s *GameScreen) SetParent(parent Screen) Screen {
+	s.parent = parent
+	return s
+}
 
+// Orchestration function with no parameters
+// call to child-functions rendering specific things
+func (s *GameScreen) Render() {
 	s.renderMap()
-	s.renderPlayer()
+	s.renderCharacterElements()
 	s.renderNavigationCross()
 	s.renderOverlayInterface()
 }
 
+// Create a new UI Screen handling the game world
 func NewGameScreen(gameWorld *world.World, font *rl.Font, color, highlight rl.Color, cam *rl.Camera2D) Screen {
 	return &GameScreen{
 		world:     gameWorld,

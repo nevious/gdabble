@@ -29,8 +29,9 @@ import (
 type GameMapInterface interface {
 	GetSize() *rl.Vector2
 	GetTexture() *rl.Texture2D
-	GetTileAt(x, y int) []RectangleWithScale
+	GetTileAt(x, y int) []utils.RenderItem
 	GetId() int
+	isCellWalkable(position rl.Vector2) bool
 }
 
 type JsonMetaData struct {
@@ -42,9 +43,8 @@ type JsonMetaData struct {
 }
 
 type ColorMap struct {
-	Locations   [][]int `json:"location"` // X, Y, Scale
-	ScaleFactor int     `json:"scale"`
-	Accessible  bool    `json:"accessible"`
+	Locations  [][]int `json:"location"` // X, Y, Scale
+	Accessible bool    `json:"accessible"`
 }
 
 type GameMap struct {
@@ -53,11 +53,6 @@ type GameMap struct {
 	texture         rl.Texture2D
 	colors          map[string]ColorMap
 	textureTileSize int
-}
-
-type RectangleWithScale struct {
-	Rect  rl.Rectangle
-	Scale float32
 }
 
 func (m *GameMap) GetId() int {
@@ -73,20 +68,19 @@ func (m *GameMap) GetSize() *rl.Vector2 {
 
 // Get the textures rectangle for given grid coordinates
 // MUST be grid coordinates, not world or screen coordinates
-func (m *GameMap) GetTileAt(x, y int) []RectangleWithScale {
+func (m *GameMap) GetTileAt(x, y int) []utils.RenderItem {
 	ttSize := float32(m.textureTileSize)
-	var result []RectangleWithScale
+	var result []utils.RenderItem
 
 	mapColor := rl.GetImageColor(*m.terrainMap, int32(x), int32(y))
 	hexCol := utils.RaylibColorToHex(mapColor)
 
 	for _, loc := range m.colors[hexCol].Locations {
-		srcX, srcY, scale := float32(loc[0]), float32(loc[1]), float32(loc[2])
+		srcX, srcY, scale, zindex := float32(loc[0]), float32(loc[1]), float32(loc[2]), int(loc[3])
 		multiplier := ttSize * scale
 		rayRect := rl.NewRectangle(srcX*ttSize, srcY*ttSize, multiplier, multiplier)
-		rect := &RectangleWithScale{rayRect, scale}
+		rect := utils.NewRenderItem(rayRect, scale, zindex, m.GetTexture())
 		result = append(result, *rect)
-
 	}
 
 	return result
@@ -94,6 +88,14 @@ func (m *GameMap) GetTileAt(x, y int) []RectangleWithScale {
 
 func (m *GameMap) GetTexture() *rl.Texture2D {
 	return &m.texture
+}
+
+/* Private -------------------------------------------------------------------------------------- */
+
+func (m *GameMap) isCellWalkable(position rl.Vector2) bool {
+	c := rl.GetImageColor(*m.terrainMap, int32(position.X), int32(position.Y))
+	col := utils.RaylibColorToHex(c)
+	return m.colors[col].Accessible
 }
 
 // Create a new map object from a json file given by `path`
