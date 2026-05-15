@@ -3,7 +3,7 @@ package world
 import (
 	"cmp"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/character"
+	"main/entity"
 	"main/grid"
 	"main/utils"
 	"slices"
@@ -13,13 +13,13 @@ import (
 
 type World struct {
 	tileSize      float32
-	player        character.Entity
 	availableMaps *[]GameMapInterface
 	currentMap    GameMapInterface
 	mapDataDir    string
 	renderList    []RenderListItem
 	// A cell we know the player is allowed to be on, used to fall back on
 	safeCell *rl.Vector2
+	entities []entity.Entity
 }
 
 type RenderListItem struct {
@@ -38,21 +38,27 @@ func (w *World) Update() {
 	}
 
 	w.updateCurrentMap()
-	w.updatePlayer()
-	w.updateEnemies()
+	w.updateEntities()
 	w.updateRenderList()
 }
 
-// Return current player position
-func (w *World) GetPlayerPosition() *rl.Vector2 {
-	return w.player.GetCurrentPosition()
+// Return entitys `ent`'s position
+func (w *World) GetEntityPosition(wEntity entity.Entity) *rl.Vector2 {
+	return wEntity.GetCurrentPosition()
 }
 
-// Set the player position to the given `position` in
+// Set the entity's position to the given `position` in
 // Cell-Space
-func (w *World) SetPlayerPosition(position *rl.Vector2) {
-	w.player.SetTargetPosition(position)
-	utils.LogPlayerTransition(rl.LogDebug, *w.player.GetCurrentPosition(), *w.player.GetTargetPosition())
+func (w *World) SetEntityPosition(wEntity entity.Entity, position *rl.Vector2) {
+	wEntity.SetTargetPosition(position)
+	utils.LogPlayerTransition(
+		rl.LogDebug, wEntity, *wEntity.GetCurrentPosition(), *wEntity.GetTargetPosition(),
+	)
+}
+
+// Get the currenty state of the given entity
+func (w *World) GetEntityActionState(wEntity entity.Entity) entity.EntityMovementState {
+	return wEntity.GetActionState()
 }
 
 // Get world Tilesize set by config
@@ -70,6 +76,16 @@ func (w *World) GetRenderListItems() []RenderListItem {
 	return w.renderList
 }
 
+// Return the player entity
+func (w *World) GetPlayer() entity.Entity {
+	for _, entityEl := range w.entities {
+		if entityEl.GetEntityType() == entity.PlayerType {
+			return entityEl
+		}
+	}
+	panic("No player could be found")
+}
+
 /* Private -------------------------------------------------------------------------------------- */
 
 func (w *World) updateRenderList() {
@@ -78,7 +94,7 @@ func (w *World) updateRenderList() {
 	mapSize := w.currentMap.GetSize()
 	result := []RenderListItem{}
 
-	// Calculate the tiles
+	// Calculate map render items
 	for x := float32(0); x < mapSize.X; x++ {
 		for y := float32(0); y < mapSize.Y; y++ {
 			destPosition := rl.NewVector2(x*w.tileSize, y*w.tileSize)
@@ -88,19 +104,22 @@ func (w *World) updateRenderList() {
 				dstX, dstY := destPosition.X, destPosition.Y
 				if renderItem.Scale > 1 {
 					// multicell textures are rendered with an offset
-					// that is equal to half the texture width. So for a 3-tile
-					// texture, it renders a 1.5 cell offset, which is why trees are placed between cells.
+					// that is equal to half the texture width. So for a 3-tile texture,
+					// it renders a 1.5 cell offset, which is why trees are placed between cells.
 					dstX = destPosition.X - (w.tileSize * renderItem.Scale / 2)
 					dstY = destPosition.Y - (w.tileSize*renderItem.Scale - w.tileSize)
 				}
 
-				destRect := rl.NewRectangle(dstX, dstY, w.tileSize*renderItem.Scale, w.tileSize*renderItem.Scale)
+				destRect := rl.NewRectangle(
+					dstX, dstY, w.tileSize*renderItem.Scale, w.tileSize*renderItem.Scale,
+				)
+
 				result = append(result,
 					RenderListItem{
 						Src:     renderItem.TexRect,
 						Dst:     destRect,
 						zindex:  renderItem.Zindex,
-						Texture: *w.currentMap.GetTexture(),
+						Texture: *renderItem.Texture,
 					})
 			}
 		}
@@ -108,19 +127,22 @@ func (w *World) updateRenderList() {
 
 	// Calculate entities - for now it's just the player so we won't overcomplicate it
 	// it's okay to be messy for now and will be cleaner once we utilizie Entity as an interface
-	playerTex, playerTexRect := w.player.GetSprite()
-	playerPosition := w.player.GetCurrentPosition()
-	playerGameRect := rl.NewRectangle(
-		playerPosition.X-float32(w.tileSize/2),
-		playerPosition.Y-float32(w.tileSize/2),
-		w.tileSize, w.tileSize,
+	player := w.GetPlayer()
+	playerRenderItem := player.GetSprite()
+	playerPosition := player.GetCurrentPosition()
+
+	playerDestRect := rl.NewRectangle(
+		playerPosition.X-float32(w.tileSize*playerRenderItem.Scale/2),
+		playerPosition.Y-float32(w.tileSize*playerRenderItem.Scale/2),
+		w.tileSize*playerRenderItem.Scale, w.tileSize*playerRenderItem.Scale,
 	)
 
+	// Add to the render list
 	result = append(result, RenderListItem{
-		Src:     *playerTexRect,
-		Dst:     playerGameRect,
+		Src:     playerRenderItem.TexRect,
+		Dst:     playerDestRect,
 		zindex:  2,
-		Texture: *playerTex,
+		Texture: *playerRenderItem.Texture,
 	})
 
 	// Sort the renderlist based on zIndex and Y-based depth
@@ -154,34 +176,44 @@ func (w *World) updateRenderList() {
 
 // Set current map to players map
 func (w *World) updateCurrentMap() {
-	playerMapId := w.player.GetCurrentMap()
+	player := w.GetPlayer()
+	playerMapId := player.GetCurrentMap()
 	if worldMap := w.currentMap; worldMap == nil || worldMap.GetId() != playerMapId {
-		w.setWorldMap(w.player.GetCurrentMap())
+		w.setWorldMap(player.GetCurrentMap())
 	}
 }
 
 // Update Player Position and verify access to cell
 func (w *World) updatePlayer() {
 	// Very primitive collision detection
+	player := w.GetPlayer()
 	if w.safeCell == nil {
-		w.safeCell = grid.GetCellFromPixelPosition(w.player.GetCurrentPosition(), w.tileSize)
+		w.safeCell = grid.GetCellFromPixelPosition(player.GetCurrentPosition(), w.tileSize)
 	}
 
-	if cell := grid.GetCellFromPixelPosition(w.player.GetCurrentPosition(), w.tileSize); cell != w.safeCell {
+	if cell := grid.GetCellFromPixelPosition(player.GetCurrentPosition(), w.tileSize); cell != w.safeCell {
 		if !w.currentMap.isCellWalkable(*cell) {
 			utils.LogDebug("Cell %+v is not walkable, moving to: %+v", cell, w.safeCell)
-			w.player.SetTargetPosition(grid.GetCenterCellCoordinates(w.safeCell, w.tileSize))
-			w.player.StopMoving()
+			player.SetTargetPosition(grid.GetCenterCellCoordinates(w.safeCell, w.tileSize))
+			player.StopMoving()
 			return // Abort all consecutive evaluations. Player must move
 		}
 		w.safeCell = cell
 	}
 
-	if w.player.IsMoving() {
-		if w.player.ReachDestination() {
-			w.player.StopMoving()
+	player.Update()
+}
+
+// Update all entities
+// Orchestration Function, dispatch to Type specific update function
+func (w *World) updateEntities() {
+	for _, ent := range w.entities {
+		switch ent.GetEntityType() {
+		case entity.PlayerType:
+			w.updatePlayer()
+		case entity.EnemeyType:
+			w.updateEnemies()
 		}
-		w.player.MoveForFrame()
 	}
 }
 
@@ -225,10 +257,10 @@ func (w *World) loadMaps() {
 /* Constructor Method --------------------------------------------------------------------------- */
 
 // Create a new world
-func NewWorld(tileSize float32, player character.Entity, mapDataDir string) *World {
+func NewWorld(tileSize float32, player entity.Entity, mapDataDir string) *World {
 	return &World{
-		player:     player,
 		tileSize:   tileSize,
 		mapDataDir: mapDataDir,
+		entities:   []entity.Entity{player},
 	}
 }

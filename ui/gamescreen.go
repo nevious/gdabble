@@ -28,8 +28,10 @@ type GameScreen struct {
 // Positions are casted to int and then to float32 again. This enforces
 // whole number values
 func (s *GameScreen) updateCamera() {
-	s.camera.Target.X = float32(int(s.world.GetPlayerPosition().X))
-	s.camera.Target.Y = float32(int(s.world.GetPlayerPosition().Y))
+	player := s.world.GetPlayer()
+	playerPosition := s.world.GetEntityPosition(player)
+	s.camera.Target.X = float32(int(playerPosition.X))
+	s.camera.Target.Y = float32(int(playerPosition.Y))
 	s.camera.Offset.X = float32(int(rl.GetScreenWidth()) / 2)
 	s.camera.Offset.Y = float32(int(rl.GetScreenHeight()) / 2)
 
@@ -43,13 +45,14 @@ func (s *GameScreen) updateCamera() {
 
 // Set the players position via world to the clicked cell
 func (s *GameScreen) handlePlayerInput() {
+	player := s.world.GetPlayer()
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 
 		vec := rl.GetScreenToWorld2D(rl.GetMousePosition(), *s.camera)
 		clickedCell := grid.GetCellFromPixelPosition(&vec, s.world.GetTileSize())
 
 		if grid.CellWithinMapBounds(clickedCell, s.world.GetMap().GetSize()) {
-			s.world.SetPlayerPosition(grid.GetCenterCellCoordinates(clickedCell, s.world.GetTileSize()))
+			s.world.SetEntityPosition(player, grid.GetCenterCellCoordinates(clickedCell, s.world.GetTileSize()))
 		}
 	}
 }
@@ -103,18 +106,21 @@ func (s *GameScreen) renderMap() {
 // Render UI elements of the character
 func (s *GameScreen) renderCharacterElements() {
 	rl.BeginMode2D(*s.camera)
-	playerPosition := *s.world.GetPlayerPosition()
+	player := s.world.GetPlayer()
+	playerPosition := *s.world.GetEntityPosition(player)
 
 	cx, cy := int32(playerPosition.X), int32(playerPosition.Y)
 
 	// some debugging information about player position
-	rl.DrawText(fmt.Sprintf("Row: %d | %d", cx, cy), cx, cy+20, 10, rl.DarkGray)
+	rl.DrawText(fmt.Sprintf("Row: %d | %d", cx, cy), cx, cy+20, 10, rl.RayWhite)
 	worldPos := rl.GetScreenToWorld2D(playerPosition, *s.camera)
-	rl.DrawText(fmt.Sprintf("World: %0f | %0f", worldPos.X, worldPos.Y), cx, cy+30, 10, rl.DarkGray)
+	rl.DrawText(fmt.Sprintf("World: %0f | %0f", worldPos.X, worldPos.Y), cx, cy+30, 10, rl.RayWhite)
 	screenPos := rl.GetWorldToScreen2D(worldPos, *s.camera)
-	rl.DrawText(fmt.Sprintf("Screen: %0f | %0f", screenPos.X, screenPos.Y), cx, cy+40, 10, rl.DarkGray)
+	rl.DrawText(fmt.Sprintf("Screen: %0f | %0f", screenPos.X, screenPos.Y), cx, cy+40, 10, rl.RayWhite)
 	mousePosition := rl.GetMousePosition()
-	rl.DrawText(fmt.Sprintf("Mouse: %0f | %0f", mousePosition.X, mousePosition.Y), cx, cy+50, 10, rl.DarkGray)
+	rl.DrawText(fmt.Sprintf("Mouse: %0f | %0f", mousePosition.X, mousePosition.Y), cx, cy+50, 10, rl.RayWhite)
+	playerState := s.world.GetEntityActionState(player)
+	rl.DrawText(fmt.Sprintf("State: %s", playerState), cx, cy+60, 10, rl.RayWhite)
 
 	rl.EndMode2D()
 }

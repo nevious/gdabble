@@ -1,7 +1,8 @@
-package character
+package entity
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"main/types"
 )
 
 type Entity interface {
@@ -9,22 +10,40 @@ type Entity interface {
 	ReachDestination() bool
 	// Get the current Position in Pixel space
 	GetCurrentPosition() *rl.Vector2
-	// Set the current Position in Pixel space
-	SetCurrentPosition(*rl.Vector2)
 	// Get the target position in Pixel space
 	GetTargetPosition() *rl.Vector2
 	// Set the target position in Pixel space
 	SetTargetPosition(*rl.Vector2)
-	// Check if the entitiy is currently moving
-	IsMoving() bool
+	// Check the entity's movement state
+	GetActionState() EntityMovementState
 	// Stop moving and set the current position to the target position
 	StopMoving()
-	// Move a frames width towards the target position
-	MoveForFrame()
 	// Get this entities sprite texture
-	GetSprite() (*rl.Texture2D, *rl.Rectangle)
+	GetSprite() *types.RenderItem
+	// Update the entity state
+	Update()
 	// Destroy Entitiy and unload the sprite
 	Destroy()
 	// Get the current map of the entity
 	GetCurrentMap() int
+	// Get the entities Type
+	GetEntityType() EntityType
+}
+
+type EntityType int
+
+const (
+	PlayerType EntityType = iota
+	EnemeyType
+	NpcType
+)
+
+var entitytTypeNames = map[EntityType]string{
+	PlayerType: "Player",
+	EnemeyType: "Enemy",
+	NpcType:    "NPC",
+}
+
+func (e EntityType) String() string {
+	return entitytTypeNames[e]
 }

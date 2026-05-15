@@ -3,11 +3,12 @@ package utils
 import (
 	"fmt"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"main/entity"
 )
 
-func LogPlayerTransition(level rl.TraceLogLevel, current, target rl.Vector2) {
+func LogPlayerTransition(level rl.TraceLogLevel, ent entity.Entity, current, target rl.Vector2) {
 	rl.TraceLog(
-		level, "%s", fmt.Sprintf("Player move from: %+v to: %+v", current, target),
+		level, "%s", fmt.Sprintf("Entity <%s> move from: %+v to: %+v", ent.GetEntityType(), current, target),
 	)
 }
 

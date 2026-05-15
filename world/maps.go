@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"io"
+	"main/types"
 	"main/utils"
 	"os"
 )
@@ -29,7 +30,7 @@ import (
 type GameMapInterface interface {
 	GetSize() *rl.Vector2
 	GetTexture() *rl.Texture2D
-	GetTileAt(x, y int) []utils.RenderItem
+	GetTileAt(x, y int) []types.RenderItem
 	GetId() int
 	isCellWalkable(position rl.Vector2) bool
 }
@@ -68,9 +69,9 @@ func (m *GameMap) GetSize() *rl.Vector2 {
 
 // Get the textures rectangle for given grid coordinates
 // MUST be grid coordinates, not world or screen coordinates
-func (m *GameMap) GetTileAt(x, y int) []utils.RenderItem {
+func (m *GameMap) GetTileAt(x, y int) []types.RenderItem {
 	ttSize := float32(m.textureTileSize)
-	var result []utils.RenderItem
+	var result []types.RenderItem
 
 	mapColor := rl.GetImageColor(*m.terrainMap, int32(x), int32(y))
 	hexCol := utils.RaylibColorToHex(mapColor)
@@ -79,7 +80,7 @@ func (m *GameMap) GetTileAt(x, y int) []utils.RenderItem {
 		srcX, srcY, scale, zindex := float32(loc[0]), float32(loc[1]), float32(loc[2]), int(loc[3])
 		multiplier := ttSize * scale
 		rayRect := rl.NewRectangle(srcX*ttSize, srcY*ttSize, multiplier, multiplier)
-		rect := utils.NewRenderItem(rayRect, scale, zindex, m.GetTexture())
+		rect := types.NewRenderItem(rayRect, scale, zindex, &m.texture)
 		result = append(result, *rect)
 	}
 
@@ -97,6 +98,8 @@ func (m *GameMap) isCellWalkable(position rl.Vector2) bool {
 	col := utils.RaylibColorToHex(c)
 	return m.colors[col].Accessible
 }
+
+/* Constructor method --------------------------------------------------------------------------- */
 
 // Create a new map object from a json file given by `path`
 func NewGameMapFromJson(path string) GameMapInterface {

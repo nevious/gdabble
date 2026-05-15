@@ -15,7 +15,7 @@ package main
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/character"
+	"main/entity"
 	"main/grid"
 	"main/ui"
 	"main/utils"
@@ -49,7 +49,7 @@ var (
 )
 
 // Create and spawn a player in the middle of the initial grid
-func createPlayer(speed float32) character.Entity {
+func createPlayer(speed float32) entity.Entity {
 	spawnX := float32(rl.GetScreenWidth() / 2)
 	spawnY := float32(rl.GetScreenHeight() / 2)
 
@@ -61,11 +61,11 @@ func createPlayer(speed float32) character.Entity {
 		cellWidth,
 	)
 
-	return character.NewPlayer(spawn, speed)
+	return entity.NewPlayer(spawn, speed)
 }
 
 // Create a world with a player
-func createWorld(cellWidth float32, player character.Entity) *world.World {
+func createWorld(cellWidth float32, player entity.Entity) *world.World {
 	return world.NewWorld(cellWidth, player, mapDataDir)
 }
 
@@ -96,7 +96,7 @@ func createSettings(font *rl.Font, color, hightlight rl.Color) ui.Screen {
 }
 
 // Create a camera and point it at the player
-func createCamera(player character.Entity) *rl.Camera2D {
+func createCamera(player entity.Entity) *rl.Camera2D {
 	return &rl.Camera2D{
 		Target: *player.GetCurrentPosition(),
 		Zoom:   1, // defaults to 0, infinite zoom

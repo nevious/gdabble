@@ -40,7 +40,7 @@ func Lerp(start, target, time float32) float32 {
 
 // For X, if we move left, the diff will be negative, otherwise positive
 // We never want to move more than the calculated step size which is
-// player.speed * rl.FrameTime, to result ina pixel/s "step"
+// player.speed * rl.FrameTime, to result in a pixel/s "step"
 // returning current +/- speed means the position is never exceeding this step size
 // while the min/max is a clamp not to go beyond the target
 func ApproachPoint(current, target, speed float32) float32 {
