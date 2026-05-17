@@ -29,7 +29,6 @@ import (
 
 type GameMapInterface interface {
 	GetSize() *rl.Vector2
-	GetTexture() *rl.Texture2D
 	GetTileAt(x, y int) []types.RenderItem
 	GetId() int
 	isCellWalkable(position rl.Vector2) bool
@@ -85,10 +84,6 @@ func (m *GameMap) GetTileAt(x, y int) []types.RenderItem {
 	}
 
 	return result
-}
-
-func (m *GameMap) GetTexture() *rl.Texture2D {
-	return &m.texture
 }
 
 /* Private -------------------------------------------------------------------------------------- */

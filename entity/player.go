@@ -65,7 +65,6 @@ func (p *Player) Update() {
 		}
 
 		t := rl.GetFrameTime()
-		// TODO: ApproachPoint can be made to be able to handle a vector...
 		p.currentPosition.X = grid.ApproachPoint(p.currentPosition.X, p.targetPosition.X, p.speed*t)
 		p.currentPosition.Y = grid.ApproachPoint(p.currentPosition.Y, p.targetPosition.Y, p.speed*t)
 

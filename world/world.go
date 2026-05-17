@@ -91,8 +91,6 @@ func (w *World) GetPlayer() entity.Entity {
 /* Private -------------------------------------------------------------------------------------- */
 
 func (w *World) updateRenderList() {
-	// BUG:
-	// Some trees still look weird when the player is on the same cell.
 	mapSize := w.currentMap.GetSize()
 	result := []RenderListItem{}
 
@@ -122,8 +120,6 @@ func (w *World) updateRenderList() {
 		}
 	}
 
-	// Calculate entities - for now it's just the player so we won't overcomplicate it
-	// it's okay to be messy for now and will be cleaner once we utilizie Entity as an interface
 	for _, ent := range w.entities {
 		entityRenderItem := ent.GetSprite()
 		entityPosition := ent.GetCurrentPosition()
@@ -143,20 +139,20 @@ func (w *World) updateRenderList() {
 		})
 	}
 
+	// BUG:
+	// Y-coordinate sorting is not doing what i would expect.
+	// Sometimes player is in front of the middle cell of  atree
 	// Sort the renderlist based on zIndex and Y-based depth
 	slices.SortFunc(result, func(a, b RenderListItem) int {
-		// If the Height is larger than the tilesize, it means we're dealing with a texture that's
-		// bigger than a single tile. We adjust for this by shifting the rendering position
-		// and we need to adjust for this again here
 		var offsetA float32 = 0
 		var offsetB float32 = 0
 
 		if a.Dst.Height > w.tileSize {
-			offsetA = a.Dst.Height - w.tileSize
+			offsetA = a.Dst.Height - (w.tileSize * a.Scale)
 		}
 
 		if b.Dst.Height > w.tileSize {
-			offsetB = b.Dst.Height - w.tileSize
+			offsetB = b.Dst.Height - (w.tileSize * a.Scale)
 		}
 
 		if a.zindex > b.zindex {
@@ -205,24 +201,21 @@ func (w *World) updatePlayer() {
 // Update all entities
 // Orchestration Function, dispatch to Type specific update function
 func (w *World) updateEntities() {
+	var enemyCount int = 0
+
 	for _, ent := range w.entities {
 		switch ent.GetEntityType() {
 		case entity.PlayerType:
 			w.updatePlayer()
 		case entity.EnemeyType:
 			w.updateEnemies()
+			enemyCount++
 		}
 	}
 
 	// Spawn an enemy if there is none
 	// Double looping for now is fine
-	enemies := []int{}
-	for idx, ent := range w.entities {
-		if ent.GetEntityType() == entity.EnemeyType {
-			enemies = append(enemies, idx)
-		}
-	}
-	if len(enemies) < 10 {
+	if enemyCount < 10 {
 		vec := rl.NewVector2(float32(rand.Intn(40)), float32(rand.Intn(20)))
 		spawn := grid.GetCenterCellCoordinates(&vec, w.tileSize)
 		w.entities = append(w.entities, entity.NewEnemy(*spawn))
@@ -230,7 +223,14 @@ func (w *World) updateEntities() {
 }
 
 // Update Enemeies Position
-func (w *World) updateEnemies() {}
+func (w *World) updateEnemies() {
+	for _, ent := range w.entities {
+		if ent.GetEntityType() != entity.EnemeyType {
+			continue
+		}
+		utils.LogDebug("Entity: %+v updating", ent)
+	}
+}
 
 // Check if maps have been loaded yet
 func (w *World) mapsAreLoaded() bool {
