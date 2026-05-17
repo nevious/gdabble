@@ -103,6 +103,8 @@ func (p *Player) GetCurrentMap() int {
 /* Constructor Method --------------------------------------------------------------------------- */
 
 func NewPlayer(spawn *rl.Vector2, speed float32) Entity {
+	// TODO
+	// Construct this from persistant data source
 	var anim = map[EntityMovementState]animation.Animation{
 		StateIdle: animation.NewSpriteAnimation(
 			"./assets/TinySwordsFreePack/Units/Blue Units/Warrior/Warrior_Idle.png",

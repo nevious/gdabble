@@ -44,7 +44,7 @@ type JsonMetaData struct {
 }
 
 type ColorMap struct {
-	Locations  [][]int `json:"location"` // X, Y, Scale
+	Locations  [][]int `json:"location"` // X, Y, Scale, Depth
 	Accessible bool    `json:"accessible"`
 }
 
@@ -107,13 +107,11 @@ func NewGameMapFromJson(path string) GameMapInterface {
 	if err != nil {
 		utils.LogError("Unable to read %s: %+v", path, err)
 	}
-	utils.LogDebug("pFD: %+v", pFD)
 
 	content, err := io.ReadAll(pFD)
 	if err != nil {
-		utils.LogError("Unable t read from file: %+v", err)
+		utils.LogError("Unable to read from file: %+v", err)
 	}
-	utils.LogDebug("content: %+v", content)
 
 	jsonMetaData := &JsonMetaData{}
 	gameMap := &GameMap{}
@@ -123,7 +121,6 @@ func NewGameMapFromJson(path string) GameMapInterface {
 	}
 
 	utils.LogDebug("New JSON Loaded: %+v", jsonMetaData)
-
 	terrainImage := rl.LoadImage(jsonMetaData.TerrainMapFile)
 	gameMap.id = jsonMetaData.ID
 	gameMap.terrainMap = terrainImage

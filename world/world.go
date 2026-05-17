@@ -6,6 +6,7 @@ import (
 	"main/entity"
 	"main/grid"
 	"main/utils"
+	"math/rand"
 	"slices"
 )
 
@@ -26,6 +27,7 @@ type RenderListItem struct {
 	Src     rl.Rectangle
 	Dst     rl.Rectangle
 	Texture rl.Texture2D
+	Scale   float32
 	zindex  int // We manage zindex in world, nowhere else
 }
 
@@ -101,14 +103,8 @@ func (w *World) updateRenderList() {
 			textureRectangles := w.currentMap.GetTileAt(int(x), int(y))
 
 			for _, renderItem := range textureRectangles {
-				dstX, dstY := destPosition.X, destPosition.Y
-				if renderItem.Scale > 1 {
-					// multicell textures are rendered with an offset
-					// that is equal to half the texture width. So for a 3-tile texture,
-					// it renders a 1.5 cell offset, which is why trees are placed between cells.
-					dstX = destPosition.X - (w.tileSize * renderItem.Scale / 2)
-					dstY = destPosition.Y - (w.tileSize*renderItem.Scale - w.tileSize)
-				}
+				dstX := destPosition.X - (w.tileSize * renderItem.Scale / 2)
+				dstY := destPosition.Y - (w.tileSize*renderItem.Scale - w.tileSize)
 
 				destRect := rl.NewRectangle(
 					dstX, dstY, w.tileSize*renderItem.Scale, w.tileSize*renderItem.Scale,
@@ -119,6 +115,7 @@ func (w *World) updateRenderList() {
 						Src:     renderItem.TexRect,
 						Dst:     destRect,
 						zindex:  renderItem.Zindex,
+						Scale:   renderItem.Scale,
 						Texture: *renderItem.Texture,
 					})
 			}
@@ -127,23 +124,24 @@ func (w *World) updateRenderList() {
 
 	// Calculate entities - for now it's just the player so we won't overcomplicate it
 	// it's okay to be messy for now and will be cleaner once we utilizie Entity as an interface
-	player := w.GetPlayer()
-	playerRenderItem := player.GetSprite()
-	playerPosition := player.GetCurrentPosition()
+	for _, ent := range w.entities {
+		entityRenderItem := ent.GetSprite()
+		entityPosition := ent.GetCurrentPosition()
 
-	playerDestRect := rl.NewRectangle(
-		playerPosition.X-float32(w.tileSize*playerRenderItem.Scale/2),
-		playerPosition.Y-float32(w.tileSize*playerRenderItem.Scale/2),
-		w.tileSize*playerRenderItem.Scale, w.tileSize*playerRenderItem.Scale,
-	)
+		entityDestRect := rl.NewRectangle(
+			entityPosition.X-float32(w.tileSize*entityRenderItem.Scale/2),
+			entityPosition.Y-float32(w.tileSize*entityRenderItem.Scale/2),
+			w.tileSize*entityRenderItem.Scale, w.tileSize*entityRenderItem.Scale,
+		)
 
-	// Add to the render list
-	result = append(result, RenderListItem{
-		Src:     playerRenderItem.TexRect,
-		Dst:     playerDestRect,
-		zindex:  2,
-		Texture: *playerRenderItem.Texture,
-	})
+		result = append(result, RenderListItem{
+			Src:     entityRenderItem.TexRect,
+			Dst:     entityDestRect,
+			zindex:  entityRenderItem.Zindex,
+			Scale:   entityRenderItem.Scale,
+			Texture: *entityRenderItem.Texture,
+		})
+	}
 
 	// Sort the renderlist based on zIndex and Y-based depth
 	slices.SortFunc(result, func(a, b RenderListItem) int {
@@ -214,6 +212,20 @@ func (w *World) updateEntities() {
 		case entity.EnemeyType:
 			w.updateEnemies()
 		}
+	}
+
+	// Spawn an enemy if there is none
+	// Double looping for now is fine
+	enemies := []int{}
+	for idx, ent := range w.entities {
+		if ent.GetEntityType() == entity.EnemeyType {
+			enemies = append(enemies, idx)
+		}
+	}
+	if len(enemies) < 10 {
+		vec := rl.NewVector2(float32(rand.Intn(40)), float32(rand.Intn(20)))
+		spawn := grid.GetCenterCellCoordinates(&vec, w.tileSize)
+		w.entities = append(w.entities, entity.NewEnemy(*spawn))
 	}
 }
 
