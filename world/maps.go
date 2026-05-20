@@ -88,6 +88,8 @@ func (m *GameMap) GetTileAt(x, y int) []types.RenderItem {
 
 /* Private -------------------------------------------------------------------------------------- */
 
+// Check the terrain map to see if a cell is walkable
+// Cell-Space as indicated by the function being call isCELLwalkable
 func (m *GameMap) isCellWalkable(position rl.Vector2) bool {
 	c := rl.GetImageColor(*m.terrainMap, int32(position.X), int32(position.Y))
 	col := utils.RaylibColorToHex(c)

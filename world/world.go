@@ -213,8 +213,8 @@ func (w *World) updateEntities() {
 		}
 	}
 
-	// Spawn an enemy if there is none
-	if enemyCount < 10 {
+	// Spawn some enemies, dummy implementation
+	if enemyCount < 1 {
 		size := w.GetMap().GetSize()
 		randX, randY := rand.Intn(int(size.X)), rand.Intn(int(size.Y))
 		vec := rl.NewVector2(float32(randX), float32(randY))
@@ -229,6 +229,30 @@ func (w *World) updateEnemies() {
 		if ent.GetEntityType() != entity.EnemeyType {
 			continue
 		}
+
+		if ent.GetTargetPosition() == nil || ent.ReachDestination() {
+			// 50% chance of sitting still
+			if rand.Intn(10)%2 == 0 {
+				return
+			}
+
+			size := w.GetMap().GetSize()
+			dest := rl.NewVector2(
+				float32(rand.Intn(int(size.X))), float32(rand.Intn(int(size.Y))),
+			)
+			utils.LogDebug("Chose %+v as next enemy cell", dest)
+			if w.currentMap.isCellWalkable(dest) {
+				ent.SetTargetPosition(&dest)
+			} else {
+				utils.LogDebug("Can not move %+v to %+v", ent, dest)
+				ent.StopMoving()
+			}
+
+		} else if ent.ReachDestination() {
+			ent.StopMoving()
+		}
+
+		ent.Update()
 	}
 }
 
