@@ -214,9 +214,10 @@ func (w *World) updateEntities() {
 	}
 
 	// Spawn an enemy if there is none
-	// Double looping for now is fine
 	if enemyCount < 10 {
-		vec := rl.NewVector2(float32(rand.Intn(40)), float32(rand.Intn(20)))
+		size := w.GetMap().GetSize()
+		randX, randY := rand.Intn(int(size.X)), rand.Intn(int(size.Y))
+		vec := rl.NewVector2(float32(randX), float32(randY))
 		spawn := grid.GetCenterCellCoordinates(&vec, w.tileSize)
 		w.entities = append(w.entities, entity.NewEnemy(*spawn))
 	}
@@ -228,7 +229,6 @@ func (w *World) updateEnemies() {
 		if ent.GetEntityType() != entity.EnemeyType {
 			continue
 		}
-		utils.LogDebug("Entity: %+v updating", ent)
 	}
 }
 
