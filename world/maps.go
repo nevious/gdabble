@@ -21,9 +21,9 @@ package world
 import (
 	"encoding/json"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/nevious/gdabble/types"
+	"github.com/nevious/gdabble/utils"
 	"io"
-	"main/types"
-	"main/utils"
 	"os"
 )
 

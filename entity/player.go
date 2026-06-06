@@ -2,9 +2,9 @@ package entity
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/animation"
-	"main/grid"
-	"main/types"
+	"github.com/nevious/gdabble/animation"
+	"github.com/nevious/gdabble/grid"
+	"github.com/nevious/gdabble/types"
 )
 
 type FaceDirection int

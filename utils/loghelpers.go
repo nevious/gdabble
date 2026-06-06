@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/entity"
+	"github.com/nevious/gdabble/entity"
 )
 
 func LogPlayerTransition(level rl.TraceLogLevel, ent entity.Entity, current, target rl.Vector2) {

@@ -1,7 +1,7 @@
 package animation
 
 import (
-	"main/types"
+	"github.com/nevious/gdabble/types"
 )
 
 type Animation interface {

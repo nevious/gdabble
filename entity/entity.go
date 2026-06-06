@@ -2,7 +2,7 @@ package entity
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/types"
+	"github.com/nevious/gdabble/types"
 )
 
 type Entity interface {

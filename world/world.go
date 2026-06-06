@@ -3,9 +3,9 @@ package world
 import (
 	"cmp"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/entity"
-	"main/grid"
-	"main/utils"
+	"github.com/nevious/gdabble/entity"
+	"github.com/nevious/gdabble/grid"
+	"github.com/nevious/gdabble/utils"
 	"math/rand"
 	"slices"
 )

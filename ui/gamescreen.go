@@ -10,9 +10,9 @@ package ui
 import (
 	"fmt"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/grid"
-	"main/utils"
-	"main/world"
+	"github.com/nevious/gdabble/grid"
+	"github.com/nevious/gdabble/utils"
+	"github.com/nevious/gdabble/world"
 )
 
 type GameScreen struct {

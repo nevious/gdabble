@@ -15,11 +15,11 @@ package main
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"main/entity"
-	"main/grid"
-	"main/ui"
-	"main/utils"
-	"main/world"
+	"github.com/nevious/gdabble/entity"
+	"github.com/nevious/gdabble/grid"
+	"github.com/nevious/gdabble/ui"
+	"github.com/nevious/gdabble/utils"
+	"github.com/nevious/gdabble/world"
 )
 
 /*
